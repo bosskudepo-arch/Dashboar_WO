@@ -8,54 +8,48 @@
 const APP_CONFIG = {
   // Daftar Grouping yang akan ditampilkan di kolom Pivot (bisa bertambah otomatis jika ada di Sheet)
   daftarGrouping: [
-    "OGP",
-    "KENDALA PELANGGAN",
-    "KENDALA TEKNIS",
-    "TERPASANG"
+    "OPEN",
+    "CLOSE",
+    "KENDALA"
   ],
 
   // Daftar Status Default untuk pilihan dropdown di kartu
   daftarStatus: [
-    "ANTRIAN PROGRES",
-    "PENDING PELANGGAN",
-    "KENDALA PELANGGAN",
-    "KENDALA TEKNIS",
-    "CROSSING JALAN",
-    "ODP FULL",
-    "ACTCOMP",
-    "COMPLETE PS",
-    "TERPASANG",
-    "PROSES PELURUSAN"
+    "OPEN",
+    "CLOSE",
+    "TANAM",
+    "GAMAS",
+    "PENDING",
+    "BERHENTI BERLANGGANAN"
   ],
 
   // Pemetaan Status ke Grouping untuk sinkronisasi otomatis ketika status diubah
   mappingStatusKeGrouping: {
-    "ANTRIAN PROGRES": "OGP",
-    "PROSES PELURUSAN": "OGP",
-    "PENDING PELANGGAN": "KENDALA PELANGGAN",
-    "KENDALA PELANGGAN": "KENDALA PELANGGAN",
-    "KENDALA TEKNIS": "KENDALA TEKNIS",
-    "CROSSING JALAN": "KENDALA TEKNIS",
-    "ODP FULL": "KENDALA TEKNIS",
-    "ACTCOMP": "TERPASANG",
-    "COMPLETE PS": "TERPASANG",
-    "TERPASANG": "TERPASANG"
+    "OPEN": "OPEN",
+    "CLOSE": "CLOSE",
+    "TANAM": "KENDALA",
+    "GAMAS": "KENDALA",
+    "PENDING": "KENDALA",
+    "BERHENTI BERLANGGANAN": "CLOSE"
   },
 
   // Daftar Teknisi Default untuk pilihan dropdown di kartu
   daftarTeknisi: [
-    "ABIL- HAFIZ",
-    "AKMAL AZAMI - ANDRE",
-    "ANDRYANSYAH SAPUTRA - RATNO",
-    "ARI FITRIANSYAH - SYEKHUL AKHYAR",
-    "ARJULI - REVALDO",
-    "DIKY FEBRIANSAH - SAMSUL",
-    "FIRDAN IRAWAN - HADO MUANTO",
-    "JIMIANSYAH - SOLO",
-    "NURDIN ISMAIL - MUHAMMAD HIDAYAT",
-    "RONALDO APRILINI - SOLO",
-    "SUGIANTO - ALDIANSYAH",
-    "YOGI RINALDI - REJA"
+    "ADE-ANDRE",
+    "ARIF-JULIANDRI",
+    "ASEP-RONI",
+    "BAHRI-BOBY",
+    "CHAIRUL-YUDA",
+    "DEDI",
+    "DEDI DARMADI",
+    "DEDY-DIKA",
+    "DESTA-JEFRI",
+    "DICKY-HENDRA",
+    "MAMAN",
+    "MERI",
+    "RUDI-RANDA",
+    "TINO-NIZAR",
+    "YOGI"
   ],
 
   // Data Simulasi Awal (Mock Data) yang sudah diperbarui dengan properti Grouping
@@ -317,7 +311,8 @@ let appState = {
   activeFilter: {
     grouping: "",        // Filter grouping untuk popup detail
     status: "",          // Filter status khusus untuk COMPLETE PS
-    technician: ""       // Filter teknisi untuk popup detail
+    technician: "",      // Filter teknisi untuk popup detail
+    sheetSource: ""      // Filter tab sheet yang aktif (kosong = semua sheet)
   },
   isModalLocked: false,  // Status apakah modal popup terkunci (tidak tutup saat klik luar)
   currentModalTasks: []  // Data WO yang sedang ditampilkan di modal aktif (untuk fitur Salin Semua)
@@ -338,8 +333,6 @@ const DOM = {
   statOgpWo: document.getElementById('stat-ogp-wo'),
   statTerpasangWo: document.getElementById('stat-terpasang-wo'),
   statKpWo: document.getElementById('stat-kp-wo'),
-  statKtWo: document.getElementById('stat-kt-wo'),
-  statKlWo: document.getElementById('stat-kl-wo'),
   statCompletepsWo: document.getElementById('stat-completeps-wo'),
   leaderboardList: document.getElementById('leaderboard-list'),
   
@@ -349,6 +342,7 @@ const DOM = {
   
   // Pivot Table
   pivotTable: document.getElementById('pivot-table'),
+  sheetTabsContainer: document.getElementById('sheet-tabs-container'),
   loader: document.getElementById('loader'),
   alertContainer: document.getElementById('alert-container'),
   
@@ -370,10 +364,10 @@ const DOM = {
  * INITIALIZATION (PROSES AWAL SAAT HALAMAN DIBUKA)
  * ==========================================================================
  */
-document.addEventListener("DOMContentLoaded", () => {
-  // 1. Muat Pengaturan Tema & Konfigurasi dari LocalStorage jika ada
+document.addEventListener("DOMContentLoaded", async () => {
+  // 1. Muat Pengaturan Tema & Konfigurasi dari LocalStorage/linkdata.txt jika ada
   initTheme();
-  initSettings();
+  await initSettings();
   
   // 2. Pasang Event Listeners (Sensor Klik/Ketik)
   setupEventListeners();
@@ -397,18 +391,39 @@ function initTheme() {
   }
 }
 
-// Memuat setelan API & Mode dari penyimpanan lokal
-function initSettings() {
-  // Jika belum pernah disetel di perangkat ini (kunjungan pertama), setel default ke Google Sheets & URL Anda
+// Memuat setelan API & Mode dari penyimpanan lokal dan linkdata.txt
+async function initSettings() {
+  // Jika belum pernah disetel di perangkat ini (kunjungan pertama), setel default ke Google Sheets
   if (localStorage.getItem('dataMode') === null) {
     localStorage.setItem('dataMode', 'sheets');
   }
-  if (localStorage.getItem('webAppUrl') === null) {
-    localStorage.setItem('webAppUrl', 'https://script.google.com/macros/s/AKfycbyI7Qp6_J1LsWeNVoTSg03L9bcYnQAoXs2t6b-MvjsPL7rcLBCsacxjOVVHeW217eeXqQ/exec');
+
+  // Coba memuat URL secara dinamis dari linkdata.txt
+  let webAppUrl = '';
+  try {
+    const response = await fetch('linkdata.txt');
+    if (response.ok) {
+      const text = await response.text();
+      const trimmedUrl = text.trim();
+      if (trimmedUrl && trimmedUrl.startsWith('http')) {
+        webAppUrl = trimmedUrl;
+        localStorage.setItem('webAppUrl', trimmedUrl);
+        console.log("Berhasil memuat URL Google Sheets dari linkdata.txt:", trimmedUrl);
+      }
+    }
+  } catch (err) {
+    console.log("CORS / Offline: Tidak dapat membaca linkdata.txt secara dinamis, menggunakan cache local storage.", err);
+  }
+
+  // Jika gagal memuat dari linkdata.txt, gunakan nilai dari localStorage atau default hardcoded
+  if (!webAppUrl) {
+    if (localStorage.getItem('webAppUrl') === null) {
+      localStorage.setItem('webAppUrl', 'https://script.google.com/macros/s/AKfycbyI7Qp6_J1LsWeNVoTSg03L9bcYnQAoXs2t6b-MvjsPL7rcLBCsacxjOVVHeW217eeXqQ/exec');
+    }
+    webAppUrl = localStorage.getItem('webAppUrl');
   }
 
   const savedMode = localStorage.getItem('dataMode');
-  const savedUrl = localStorage.getItem('webAppUrl') || '';
   
   if (savedMode === 'sheets') {
     appState.isDemoMode = false;
@@ -424,16 +439,8 @@ function initSettings() {
     DOM.statusDot.className = "status-dot online";
   }
   
-  appState.webAppUrl = savedUrl;
-  DOM.webAppUrlInput.value = savedUrl;
-
-  // Load Target RE
-  const savedRe = localStorage.getItem('reTarget');
-  appState.reTarget = savedRe ? parseInt(savedRe, 10) : 10;
-  const reInput = document.getElementById('score-re-input');
-  if (reInput) {
-    reInput.value = appState.reTarget;
-  }
+  appState.webAppUrl = webAppUrl;
+  DOM.webAppUrlInput.value = webAppUrl;
 }
 
 /**
@@ -525,31 +532,6 @@ function setupEventListeners() {
       closeModal();
     }
   });
-
-  // Sensor perubahan input Target RE di Scoreboard
-  const reInput = document.getElementById('score-re-input');
-  if (reInput) {
-    reInput.addEventListener('input', (e) => {
-      let val = parseInt(e.target.value, 10);
-      if (isNaN(val) || val < 0) {
-        val = 0;
-      }
-      appState.reTarget = val;
-      localStorage.setItem('reTarget', val);
-      updateScoreboard();
-    });
-
-    reInput.addEventListener('blur', (e) => {
-      let val = parseInt(e.target.value, 10);
-      if (isNaN(val) || val <= 0) {
-        val = 1; // Minimal target 1 agar tidak pembagian nol saat diketik kosong
-        e.target.value = val;
-        appState.reTarget = val;
-        localStorage.setItem('reTarget', val);
-        updateScoreboard();
-      }
-    });
-  }
 }
 
 /**
@@ -558,6 +540,29 @@ function setupEventListeners() {
  * Menangani pengambilan data (GET) dan pengiriman pembaruan (UPDATE).
  * ==========================================================================
  */
+
+// Fungsi Menormalisasikan Grouping Tugas agar sesuai kategori OPEN, CLOSE, KENDALA
+function normalizeTaskGroupings() {
+  if (!appState.tasks) return;
+  appState.tasks.forEach(task => {
+    if (task.STATUS) {
+      task.Grouping = APP_CONFIG.mappingStatusKeGrouping[task.STATUS.trim()] || "CLOSE";
+    } else if (task.Grouping) {
+      const oldGroup = task.Grouping.trim().toUpperCase();
+      if (oldGroup === "OGP") {
+        task.Grouping = "OPEN";
+      } else if (oldGroup === "TERPASANG" || oldGroup === "COMPLETE PS") {
+        task.Grouping = "CLOSE";
+      } else if (oldGroup.includes("KENDALA")) {
+        task.Grouping = "KENDALA";
+      } else {
+        task.Grouping = "CLOSE";
+      }
+    } else {
+      task.Grouping = "CLOSE";
+    }
+  });
+}
 
 // Fungsi Utama Mengambil Data
 function fetchData() {
@@ -582,6 +587,9 @@ function fetchData() {
         appState.tasks = [...APP_CONFIG.mockDataAwal];
         localStorage.setItem('mock_tasks', JSON.stringify(appState.tasks));
       }
+      
+      normalizeTaskGroupings();
+      renderSheetTabs();
       
       DOM.statusDot.className = "status-dot online";
       DOM.statusText.textContent = "Demo Mode (Sinkron)";
@@ -618,6 +626,8 @@ function fetchData() {
       .then(result => {
         if (result.status === "success") {
           appState.tasks = result.data;
+          normalizeTaskGroupings();
+          renderSheetTabs();
           DOM.statusDot.className = "status-dot online";
           DOM.statusText.textContent = "Sheets Sinkron";
           renderPivotTable();
@@ -672,7 +682,9 @@ function updateTaskOnServer(wonum, newStatus, newTechnician, newGrouping, succes
       return;
     }
 
-    const updateUrl = `${appState.webAppUrl}?action=update&wonum=${encodeURIComponent(wonum)}&status=${encodeURIComponent(newStatus)}&teknisi=${encodeURIComponent(newTechnician)}&grouping=${encodeURIComponent(newGrouping)}`;
+    const task = appState.tasks.find(t => t.WONUM === wonum);
+    const sheetParam = task && task.SHEET_SOURCE ? `&sheet=${encodeURIComponent(task.SHEET_SOURCE)}` : '';
+    const updateUrl = `${appState.webAppUrl}?action=update&wonum=${encodeURIComponent(wonum)}&status=${encodeURIComponent(newStatus)}&teknisi=${encodeURIComponent(newTechnician)}&grouping=${encodeURIComponent(newGrouping)}${sheetParam}`;
     
     fetch(updateUrl)
       .then(response => {
@@ -715,12 +727,19 @@ function updateTaskOnServer(wonum, newStatus, newTechnician, newGrouping, succes
  * ==========================================================================
  */
 
-// Filter data berdasarkan text pencarian global
+// Filter data berdasarkan text pencarian global dan tab sheet yang aktif
 function getFilteredTasks() {
-  const keyword = DOM.globalSearch.value.trim().toLowerCase();
-  if (!keyword) return appState.tasks;
+  let filtered = appState.tasks;
   
-  return appState.tasks.filter(task => {
+  // Filter berdasarkan sheet tab yang aktif
+  if (appState.activeFilter.sheetSource) {
+    filtered = filtered.filter(task => task.SHEET_SOURCE === appState.activeFilter.sheetSource);
+  }
+  
+  const keyword = DOM.globalSearch.value.trim().toLowerCase();
+  if (!keyword) return filtered;
+  
+  return filtered.filter(task => {
     return (
       (task.WONUM && task.WONUM.toLowerCase().includes(keyword)) ||
       (task.CUST_NAME && task.CUST_NAME.toLowerCase().includes(keyword)) ||
@@ -730,6 +749,62 @@ function getFilteredTasks() {
       (task.STATUS && task.STATUS.toLowerCase().includes(keyword)) ||
       (task.KETERANGAN && task.KETERANGAN.toLowerCase().includes(keyword))
     );
+  });
+}
+
+// Menghasilkan dan merender tombol tab per Sheet secara dinamis
+function renderSheetTabs() {
+  if (!DOM.sheetTabsContainer) return;
+  
+  // Dapatkan daftar unik sheetSource dari data tugas yang aktif
+  const sheetSources = new Set();
+  appState.tasks.forEach(task => {
+    if (task.SHEET_SOURCE) {
+      sheetSources.add(task.SHEET_SOURCE);
+    }
+  });
+  
+  // Jika tidak ada info sheetSource (misal di demo mode tanpa SHEET_SOURCE), sembunyikan container tab
+  if (sheetSources.size === 0) {
+    DOM.sheetTabsContainer.classList.add('hidden');
+    return;
+  }
+  
+  DOM.sheetTabsContainer.classList.remove('hidden');
+  
+  const sortedSheets = Array.from(sheetSources).sort();
+  
+  let html = `
+    <button class="sheet-tab-btn ${appState.activeFilter.sheetSource === "" ? "active" : ""}" data-sheet="">
+      Semua Sheet (${appState.tasks.length})
+    </button>
+  `;
+  
+  sortedSheets.forEach(sheetName => {
+    const count = appState.tasks.filter(t => t.SHEET_SOURCE === sheetName).length;
+    html += `
+      <button class="sheet-tab-btn ${appState.activeFilter.sheetSource === sheetName ? "active" : ""}" data-sheet="${sheetName}">
+        ${sheetName} (${count})
+      </button>
+    `;
+  });
+  
+  DOM.sheetTabsContainer.innerHTML = html;
+  
+  // Pasang Event Listener klik pada tombol tab
+  DOM.sheetTabsContainer.querySelectorAll('.sheet-tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const selectedSheet = e.currentTarget.getAttribute('data-sheet');
+      appState.activeFilter.sheetSource = selectedSheet;
+      
+      // Update kelas active tombol tab
+      DOM.sheetTabsContainer.querySelectorAll('.sheet-tab-btn').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      
+      // Render ulang dashboard berdasarkan filter sheet yang baru
+      renderPivotTable();
+      updateStatistics();
+    });
   });
 }
 
@@ -749,8 +824,8 @@ function renderPivotTable() {
   const listTeknisi = Array.from(setTeknisi).sort();
   const listGrouping = Array.from(setGrouping); // Urutan sesuai grouping default
   
-  // Kolom pivot table: daftar Grouping + satu kolom khusus untuk "COMPLETE PS"
-  const listColumns = [...listGrouping, "COMPLETE PS"];
+  // Kolom pivot table: daftar Grouping
+  const listColumns = [...listGrouping];
 
   // 2. Hitung jumlah data pivot
   // Struktur matrixPivot[nama_teknisi][nama_kolom] = jumlah_tugas
@@ -765,26 +840,18 @@ function renderPivotTable() {
   filteredTasks.forEach(task => {
     const tek = (task.Teknisi || "").trim();
     const group = (task.Grouping || "").trim();
-    const status = (task.STATUS || "").trim();
     
     if (matrixPivot[tek]) {
       // Hitung untuk kolom grouping
       if (matrixPivot[tek][group] !== undefined) {
         matrixPivot[tek][group]++;
       }
-      // Hitung khusus untuk kolom COMPLETE PS
-      if (status === "COMPLETE PS") {
-        matrixPivot[tek]["COMPLETE PS"]++;
-      }
     }
   });
 
   // 3. Bangun Header Tabel
   const shortColNames = {
-    "KENDALA PELANGGAN": "K. Pel",
-    "KENDALA TEKNIS": "K. Tek",
-    "TERPASANG": "Tps",
-    "COMPLETE PS": "Comp"
+    "KENDALA": "Kdl"
   };
 
   let headerHtml = `
@@ -833,7 +900,7 @@ function renderPivotTable() {
       totalStatusCol[col] += count;
       
       const isActive = count > 0 ? "pivot-cell-active" : "";
-      const filterType = col === "COMPLETE PS" ? "status" : "grouping";
+      const filterType = "grouping";
       
       rowHtml += `
         <td class="pivot-cell ${isActive}" data-status="${col}" data-teknisi="${teknisi}">
@@ -861,7 +928,7 @@ function renderPivotTable() {
   `;
   listColumns.forEach(col => {
     const colTotal = totalStatusCol[col];
-    const filterType = col === "COMPLETE PS" ? "status" : "grouping";
+    const filterType = "grouping";
     const isActive = colTotal > 0 ? "pivot-cell-active" : "";
     footerHtml += `
       <td class="pivot-cell ${isActive}" data-status="${col}">
@@ -889,11 +956,9 @@ function updateStatistics() {
   const filtered = getFilteredTasks();
   
   const total = filtered.length;
-  let ogp = 0;
-  let terpasang = 0;
-  let kp = 0;
-  let kt = 0;
-  let kl = 0;
+  let open = 0;
+  let close = 0;
+  let kendala = 0;
   let completeps = 0;
   
   filtered.forEach(task => {
@@ -901,16 +966,12 @@ function updateStatistics() {
     const status = (task.STATUS || "").toUpperCase().trim();
     
     // Hitung berdasarkan Grouping (menyinkronkan statistik dengan pivot)
-    if (group === "OGP") {
-      ogp++;
-    } else if (group === "TERPASANG") {
-      terpasang++;
-    } else if (group === "KENDALA PELANGGAN") {
-      kp++;
-    } else if (group === "KENDALA TEKNIS") {
-      kt++;
-    } else {
-      kl++;
+    if (group === "OPEN") {
+      open++;
+    } else if (group === "CLOSE") {
+      close++;
+    } else if (group === "KENDALA") {
+      kendala++;
     }
     
     // Hitung khusus COMPLETE PS berdasarkan STATUS
@@ -920,11 +981,9 @@ function updateStatistics() {
   });
   
   DOM.statTotalWo.textContent = total;
-  DOM.statOgpWo.textContent = ogp;
-  DOM.statTerpasangWo.textContent = terpasang;
-  DOM.statKpWo.textContent = kp;
-  DOM.statKtWo.textContent = kt;
-  DOM.statKlWo.textContent = kl;
+  DOM.statOgpWo.textContent = open;
+  DOM.statTerpasangWo.textContent = close;
+  DOM.statKpWo.textContent = kendala;
   DOM.statCompletepsWo.textContent = completeps;
   
   // Perbarui Leaderboard Tim
@@ -984,47 +1043,48 @@ function updateLastUpdatedTime() {
   DOM.dataUpdatedTime.textContent = `Terakhir diperbarui: Hari ini, ${timeString}`;
 }
 
-// Memperbarui data dan persentase di Scoreboard Pencapaian
+// Memperbarui data dan persentase di Scoreboard KAWAL SA MEMPAWAH
 function updateScoreboard() {
-  // Hitung jumlah PS (Complete PS) dari data tasks yang ada di sheet/memori (seluruhnya, bukan terfilter)
-  const totalPS = appState.tasks.filter(task => {
-    const status = (task.STATUS || "").toUpperCase().trim();
-    return status === "COMPLETE PS";
-  }).length;
-
-  const psValueEl = document.getElementById('score-ps-value');
-  const ratioValueEl = document.getElementById('score-ratio-value');
-  const ratioCardEl = document.querySelector('.score-ratio');
-
-  if (psValueEl) {
-    psValueEl.textContent = totalPS;
-  }
-
-  const reTarget = appState.reTarget || 0;
-  let ratioText = "0.0%";
-  let achievementLevel = "low-achievement";
-
-  if (reTarget > 0) {
-    const ratio = (totalPS / reTarget) * 100;
-    ratioText = `${ratio.toFixed(1)}%`;
-    
-    if (ratio >= 100) {
-      achievementLevel = "high-achievement";
-    } else if (ratio >= 50) {
-      achievementLevel = "mid-achievement";
-    } else {
-      achievementLevel = "low-achievement";
+  const filtered = getFilteredTasks();
+  const total = filtered.length;
+  
+  let countOpen = 0;
+  let countClose = 0;
+  
+  filtered.forEach(task => {
+    const group = (task.Grouping || "").toUpperCase().trim();
+    if (group === "OPEN") {
+      countOpen++;
+    } else if (group === "CLOSE") {
+      countClose++;
     }
-  } else {
-    ratioText = "N/A";
-  }
-
-  if (ratioValueEl) {
-    ratioValueEl.textContent = ratioText;
-  }
-
-  if (ratioCardEl) {
-    ratioCardEl.className = "scoreboard-card score-ratio " + achievementLevel;
+  });
+  
+  const pctOpen = total > 0 ? (countOpen / total) * 100 : 0;
+  const pctClose = total > 0 ? (countClose / total) * 100 : 0;
+  
+  const openValueEl = document.getElementById('score-open-value');
+  const openSubtextEl = document.getElementById('score-open-subtext');
+  
+  const closeValueEl = document.getElementById('score-close-value');
+  const closeSubtextEl = document.getElementById('score-close-subtext');
+  
+  const totalValueEl = document.getElementById('score-total-value');
+  const totalSubtextEl = document.getElementById('score-total-subtext');
+  
+  if (openValueEl) openValueEl.textContent = `${pctOpen.toFixed(1)}%`;
+  if (openSubtextEl) openSubtextEl.textContent = `${countOpen} / ${total} WO`;
+  
+  if (closeValueEl) closeValueEl.textContent = `${pctClose.toFixed(1)}%`;
+  if (closeSubtextEl) closeSubtextEl.textContent = `${countClose} / ${total} WO`;
+  
+  if (totalValueEl) totalValueEl.textContent = total;
+  if (totalSubtextEl) {
+    if (appState.activeFilter.sheetSource) {
+      totalSubtextEl.textContent = `Sheet: ${appState.activeFilter.sheetSource}`;
+    } else {
+      totalSubtextEl.textContent = `Semua Sheet`;
+    }
   }
 }
 
@@ -1085,6 +1145,114 @@ function closeModal() {
   lucide.createIcons();
 }
 
+// Menghitung durasi sejak jam open/booking hingga sekarang (atau sisa SLA untuk tiket MANJA)
+function calculateTicketDuration(task) {
+  const isManja = (task.PAKET || "").toUpperCase().trim() === "MANJA";
+  
+  // Untuk tiket MANJA, waktu dihitung berdasarkan BOOKING DATE. Untuk reguler berdasarkan JAM OPEN (DATEL).
+  let dateStr = "";
+  if (isManja) {
+    dateStr = (task.BOOKING_DATE || task.DATEL || "").trim();
+  } else {
+    dateStr = (task.DATEL || "").trim();
+  }
+  
+  if (!dateStr) {
+    return { text: "-", class: "duration-normal", badgeHtml: "" };
+  }
+  
+  // Cek apakah tiket sudah CLOSE
+  const statusUpper = (task.STATUS || "").toUpperCase().trim();
+  if (statusUpper === "CLOSE" || statusUpper === "ACTCOMP" || statusUpper === "COMPLETE PS" || statusUpper === "TERPASANG") {
+    return {
+      text: "Selesai",
+      class: "duration-closed",
+      badgeHtml: `<span class="badge duration-badge" style="background: rgba(255, 255, 255, 0.05); color: #888; border: 1px solid rgba(255, 255, 255, 0.15);">Selesai</span>`
+    };
+  }
+  
+  // Konversi format DD/MM/YYYY HH:mm ke ISO YYYY-MM-DDTHH:mm agar diparsing dengan benar oleh browser
+  if (dateStr.includes("/")) {
+    const parts = dateStr.split(" ");
+    const dateParts = parts[0].split("/");
+    if (dateParts.length === 3) {
+      dateStr = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+      if (parts[1]) dateStr += `T${parts[1]}`;
+    }
+  } else if (dateStr.includes("-") && !dateStr.includes("T")) {
+    dateStr = dateStr.replace(" ", "T");
+  }
+  
+  const baseTime = new Date(dateStr);
+  if (isNaN(baseTime.getTime())) {
+    return { text: dateStr, class: "duration-normal", badgeHtml: `<span class="badge">${dateStr}</span>` };
+  }
+  
+  const now = new Date();
+  const elapsedMs = now - baseTime;
+  
+  const elapsedMinutesTotal = Math.floor(elapsedMs / 60000);
+  const elapsedHours = Math.floor(elapsedMinutesTotal / 60);
+  const elapsedMinutes = elapsedMinutesTotal % 60;
+  
+  if (isManja) {
+    // SLA Manja = 3 Jam (180 Menit) dari BOOKING DATE
+    const slaMinutes = 180;
+    const remainingMinutesTotal = slaMinutes - elapsedMinutesTotal;
+    
+    if (remainingMinutesTotal >= 0) {
+      const remHours = Math.floor(remainingMinutesTotal / 60);
+      const remMinutes = remainingMinutesTotal % 60;
+      let text = "Sisa SLA: ";
+      if (remHours > 0) {
+        text += `${remHours}j ${remMinutes}m`;
+      } else {
+        text += `${remMinutes}m`;
+      }
+      return { 
+        text: text, 
+        class: "duration-sla-safe", 
+        badgeHtml: `<span class="badge duration-badge" style="background: rgba(57, 255, 20, 0.12); color: #39ff14; border: 1px solid rgba(57, 255, 20, 0.35); font-weight: 600;" title="SLA dihitung dari Booking Date">${text}</span>`
+      };
+    } else {
+      const overdueMinutesTotal = Math.abs(remainingMinutesTotal);
+      const ovHours = Math.floor(overdueMinutesTotal / 60);
+      const ovMinutes = overdueMinutesTotal % 60;
+      let text = "Overdue: ";
+      if (ovHours > 0) {
+        text += `${ovHours}j ${ovMinutes}m`;
+      } else {
+        text += `${ovMinutes}m`;
+      }
+      return { 
+        text: text, 
+        class: "duration-sla-overdue", 
+        badgeHtml: `<span class="badge duration-badge" style="background: rgba(247, 33, 25, 0.12); color: #F72119; border: 1px solid rgba(247, 33, 25, 0.35); font-weight: 600; animation: pulse-border 1.5s infinite;" title="SLA dihitung dari Booking Date">${text}</span>`
+      };
+    }
+  } else {
+    // Regular ticket: show elapsed age
+    let text = "Umur: ";
+    if (elapsedHours > 0) {
+      const elapsedDays = Math.floor(elapsedHours / 24);
+      const remHours = elapsedHours % 24;
+      if (elapsedDays > 0) {
+        text += `${elapsedDays}h ${remHours}j`;
+      } else {
+        text += `${elapsedHours}j ${elapsedMinutes}m`;
+      }
+    } else {
+      text += `${elapsedMinutes}m`;
+    }
+    
+    return { 
+      text: text, 
+      class: "duration-normal", 
+      badgeHtml: `<span class="badge duration-badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); border: 1px solid var(--border-color);">${text}</span>`
+    };
+  }
+}
+
 // Memproses dan me-render kartu tugas di dalam modal popup
 function renderKanbanCards() {
   const tekFilter = appState.activeFilter.technician;
@@ -1094,6 +1262,11 @@ function renderKanbanCards() {
   
   // 1. Saring data berdasarkan filter sel pivot yang diklik
   let matchedTasks = appState.tasks.filter(task => {
+    // Filter berdasarkan sheet tab yang aktif
+    if (appState.activeFilter.sheetSource && task.SHEET_SOURCE !== appState.activeFilter.sheetSource) {
+      return false;
+    }
+    
     const tekCocok = !tekFilter || (task.Teknisi || "").trim() === tekFilter;
     
     let filterCocok = true;
@@ -1185,6 +1358,9 @@ function renderKanbanCards() {
       teknisiOptionsHtml += `<option value="${tk}" ${selected}>${tk}</option>`;
     });
 
+    // Hitung durasi tiket
+    const durationInfo = calculateTicketDuration(task);
+
     cardsHtml += `
       <div class="kanban-card ${statusClass}" id="card-${task.WONUM}">
         <!-- Spinner Loading Overlay -->
@@ -1200,12 +1376,19 @@ function renderKanbanCards() {
               <i data-lucide="copy" style="width: 11px; height: 11px;"></i>
             </button>
           </div>
-          <span class="badge">${task.STO || "STO"}</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            ${durationInfo.badgeHtml}
+            <span class="badge">${task.STO || "STO"}</span>
+          </div>
         </div>
 
         <h4 class="card-title">${task.CUST_NAME || "Nama Pelanggan"}</h4>
 
         <div class="card-details">
+          <div class="detail-row" title="Jam Open Tiket">
+            <i data-lucide="clock"></i>
+            <span>Open: ${task.DATEL || "-"}</span>
+          </div>
           <div class="detail-row" title="Paket Layanan">
             <i data-lucide="package"></i>
             <span>${task.PAKET || "-"}</span>
@@ -1266,7 +1449,7 @@ window.handleDropdownChange = function(wonum, selectElement, type) {
   const newTechnician = selectTeknisi.value;
   
   // Cari grouping untuk status baru
-  const newGrouping = APP_CONFIG.mappingStatusKeGrouping[newStatus] || "TERPASANG";
+  const newGrouping = APP_CONFIG.mappingStatusKeGrouping[newStatus] || "CLOSE";
 
   // Aktifkan loader visual di atas kartu yang sedang diedit
   cardElement.classList.add('updating');

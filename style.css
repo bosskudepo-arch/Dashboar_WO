@@ -890,93 +890,38 @@ input:checked + .slider:before {
 }
 
 /* Digital scoreboard specific colors and glows */
-.score-re .score-card-icon {
-  background-color: rgba(14, 165, 233, 0.1);
-  color: var(--color-info);
-  border: 1px solid rgba(14, 165, 233, 0.2);
+/* Digital scoreboard specific colors and glows */
+.score-open .score-card-icon {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
-.score-re-input {
-  background: transparent;
-  border: none;
-  font-family: var(--font-display);
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: var(--color-info);
-  width: 100%;
-  padding: 0;
-  margin: 0;
-  line-height: 1.1;
-  letter-spacing: -1px;
-  text-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
+.score-open .score-value {
+  color: var(--text-primary);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
-.score-re-input:focus {
-  outline: none;
-  background-color: rgba(14, 165, 233, 0.05);
-  border-radius: var(--radius-sm);
-}
-
-.score-re-input::-webkit-outer-spin-button,
-.score-re-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.score-re-input {
-  -moz-appearance: textfield;
-}
-
-.score-ps .score-card-icon {
-  background-color: rgba(16, 185, 129, 0.1);
+.score-close .score-card-icon {
+  background-color: var(--color-success-bg);
   color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(57, 255, 20, 0.35);
 }
 
-.score-ps .score-value {
+.score-close .score-value {
   color: var(--color-success);
-  text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  text-shadow: 0 0 10px var(--color-success-glow);
 }
 
-.score-ratio .score-card-icon {
-  background-color: rgba(99, 102, 241, 0.1);
-  color: var(--accent-color);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+.score-total .score-card-icon {
+  background-color: rgba(75, 240, 252, 0.15);
+  color: #4BF0FC;
+  border: 1px solid rgba(75, 240, 252, 0.35);
 }
 
-.score-ratio .score-value {
-  color: var(--accent-color);
-  text-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
-}
-
-/* Dynamic glow colors based on achievement levels */
-.score-ratio.low-achievement .score-value {
-  color: var(--color-danger);
-  text-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
-}
-.score-ratio.low-achievement .score-card-icon {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: var(--color-danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-}
-
-.score-ratio.mid-achievement .score-value {
-  color: var(--color-warning);
-  text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
-}
-.score-ratio.mid-achievement .score-card-icon {
-  background-color: rgba(245, 158, 11, 0.1);
-  color: var(--color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-}
-
-.score-ratio.high-achievement .score-value {
-  color: var(--color-success);
-  text-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
-}
-.score-ratio.high-achievement .score-card-icon {
-  background-color: rgba(16, 185, 129, 0.1);
-  color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+.score-total .score-value {
+  color: #4BF0FC;
+  text-shadow: 0 0 10px rgba(75, 240, 252, 0.4);
 }
 
 @media (max-width: 768px) {
@@ -1123,30 +1068,33 @@ input:checked + .slider:before {
   box-shadow: 0 0 10px rgba(128, 128, 128, 0.2);
 }
 
-/* Warna Khusus Jika Jumlah > 0 */
-/* OGP (Neon Light Grey / Deep Slate Blue) */
-.pivot-cell-active[data-status="OGP"] .pivot-number-badge {
+/* OGP & OPEN (Neon Light Grey / Deep Slate Blue) */
+.pivot-cell-active[data-status="OGP"] .pivot-number-badge,
+.pivot-cell-active[data-status="OPEN"] .pivot-number-badge {
   background-color: var(--color-ogp-bg);
   color: var(--color-info-text);
   border-color: var(--color-info);
   box-shadow: 0 0 8px var(--color-ogp-glow);
 }
-.pivot-cell-active[data-status="OGP"] .pivot-number-badge:hover {
+.pivot-cell-active[data-status="OGP"] .pivot-number-badge:hover,
+.pivot-cell-active[data-status="OPEN"] .pivot-number-badge:hover {
   background-color: var(--color-info);
   color: var(--bg-primary);
   box-shadow: 0 0 15px var(--color-ogp-glow-hover);
 }
 
-/* TERPASANG & COMPLETE PS (Neon green / Pastel Green) */
+/* TERPASANG, COMPLETE PS, & CLOSE (Neon green / Pastel Green) */
 .pivot-cell-active[data-status="TERPASANG"] .pivot-number-badge,
-.pivot-cell-active[data-status="COMPLETE PS"] .pivot-number-badge {
+.pivot-cell-active[data-status="COMPLETE PS"] .pivot-number-badge,
+.pivot-cell-active[data-status="CLOSE"] .pivot-number-badge {
   background-color: var(--color-success-bg);
   color: var(--color-success-text);
   border-color: var(--color-success);
   box-shadow: 0 0 8px var(--color-success-glow);
 }
 .pivot-cell-active[data-status="TERPASANG"] .pivot-number-badge:hover,
-.pivot-cell-active[data-status="COMPLETE PS"] .pivot-number-badge:hover {
+.pivot-cell-active[data-status="COMPLETE PS"] .pivot-number-badge:hover,
+.pivot-cell-active[data-status="CLOSE"] .pivot-number-badge:hover {
   background-color: var(--color-success);
   color: var(--bg-primary);
   box-shadow: 0 0 15px var(--color-success-glow-hover);
@@ -1792,3 +1740,61 @@ input:checked + .slider:before {
     font-size: 0.72rem;
   }
 }
+
+/* ==========================================================================
+   SHEET SELECTOR TABS
+   ========================================================================== */
+.sheet-tabs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 15px;
+  margin-bottom: 5px;
+  padding: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.sheet-tab-btn {
+  padding: 8px 16px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-speed) ease;
+}
+
+.sheet-tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.sheet-tab-btn.active {
+  color: var(--bg-primary);
+  background: var(--accent-color);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.light-theme .sheet-tab-btn.active {
+  color: #36454F;
+}
+
+/* SLA Overdue Pulse Glow Animation */
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(247, 33, 25, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(247, 33, 25, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(247, 33, 25, 0);
+  }
+}
+

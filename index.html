@@ -80,23 +80,15 @@
           </div>
           <div class="stat-box">
             <span class="stat-value text-info" id="stat-ogp-wo">0</span>
-            <span class="stat-label">OGP</span>
+            <span class="stat-label">OPEN</span>
           </div>
           <div class="stat-box">
             <span class="stat-value text-success" id="stat-terpasang-wo">0</span>
-            <span class="stat-label">Terpasang</span>
+            <span class="stat-label">CLOSE</span>
           </div>
           <div class="stat-box">
             <span class="stat-value text-danger" id="stat-kp-wo">0</span>
-            <span class="stat-label">Kd. Pelanggan</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value text-danger" id="stat-kt-wo">0</span>
-            <span class="stat-label">Kd. Teknis</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value text-muted" id="stat-kl-wo">0</span>
-            <span class="stat-label">Kd. Lainnya</span>
+            <span class="stat-label">KENDALA</span>
           </div>
           <div class="stat-box">
             <span class="stat-value text-success" style="color: #6ee7b7 !important;" id="stat-completeps-wo">0</span>
@@ -156,43 +148,44 @@
         <div class="scoreboard-header">
           <div class="scoreboard-title-group">
             <i data-lucide="trophy" class="scoreboard-title-icon text-warning"></i>
-            <h2>Scoreboard Pencapaian PS / RE</h2>
+            <h2>KAWAL SA MEMPAWAH</h2>
           </div>
           <span class="badge scoreboard-live-badge">Live Monitor</span>
         </div>
         <div class="scoreboard-grid">
-          <!-- Kolom 1: RE (Target RE - Input Manual) -->
-          <div class="scoreboard-card score-re">
+          <!-- Kolom 1: Persentase Tiket Open -->
+          <div class="scoreboard-card score-open">
             <div class="score-card-icon">
-              <i data-lucide="target"></i>
+              <i data-lucide="folder-open"></i>
             </div>
             <div class="score-card-content">
-              <span class="score-label">TARGET RE (INPUT)</span>
-              <div class="score-input-container">
-                <input type="number" id="score-re-input" class="score-re-input" min="1" value="10" placeholder="Target">
-              </div>
+              <span class="score-label">PERSENTASE TIKET OPEN</span>
+              <span class="score-value" id="score-open-value">0.0%</span>
+              <span class="score-subtext" id="score-open-subtext" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">0 WO</span>
             </div>
           </div>
 
-          <!-- Kolom 2: PS (Realisasi Complete PS dari Sheet) -->
-          <div class="scoreboard-card score-ps">
-            <div class="score-card-icon">
+          <!-- Kolom 2: Persentase Tiket Close -->
+          <div class="scoreboard-card score-close">
+            <div class="score-card-icon" style="color: var(--color-success); background: var(--color-success-bg);">
               <i data-lucide="check-circle-2"></i>
             </div>
             <div class="score-card-content">
-              <span class="score-label">REALISASI PS (SHEET)</span>
-              <span class="score-value" id="score-ps-value">0</span>
+              <span class="score-label">PERSENTASE TIKET CLOSE</span>
+              <span class="score-value" id="score-close-value" style="color: var(--color-success);">0.0%</span>
+              <span class="score-subtext" id="score-close-subtext" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">0 WO</span>
             </div>
           </div>
 
-          <!-- Kolom 3: PS/RE (Persentase Pencapaian) -->
-          <div class="scoreboard-card score-ratio">
-            <div class="score-card-icon">
-              <i data-lucide="percent"></i>
+          <!-- Kolom 3: Total Tiket -->
+          <div class="scoreboard-card score-total">
+            <div class="score-card-icon" style="color: #4BF0FC; background: rgba(75, 240, 252, 0.15);">
+              <i data-lucide="database"></i>
             </div>
             <div class="score-card-content">
-              <span class="score-label">PENCAPAIAN (PS/RE)</span>
-              <span class="score-value" id="score-ratio-value">0.0%</span>
+              <span class="score-label">TOTAL TIKET (SHEET)</span>
+              <span class="score-value" id="score-total-value" style="color: #4BF0FC;">0</span>
+              <span class="score-subtext" id="score-total-subtext" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Semua Tiket</span>
             </div>
           </div>
         </div>
@@ -208,6 +201,9 @@
           <span class="badge" id="data-updated-time">Terakhir diperbarui: -</span>
         </div>
 
+        <!-- Menu Filter Tab per Sheet -->
+        <div class="sheet-tabs-container" id="sheet-tabs-container"></div>
+
         <div class="table-responsive-container">
           <!-- Tabel Pivot akan dirender secara dinamis di sini -->
           <table class="pivot-table" id="pivot-table">
@@ -222,10 +218,9 @@
 
         <!-- Legenda Warna Status -->
         <div class="status-legend">
-          <span class="legend-item"><span class="legend-dot status-antrian"></span> OGP (Progres)</span>
-          <span class="legend-item"><span class="legend-dot status-terpasang"></span> TERPASANG / COMPLETE PS</span>
-          <span class="legend-item"><span class="legend-dot status-pending"></span> KENDALA (Pelanggan / Teknis)</span>
-          <span class="legend-item"><span class="legend-dot status-lainnya"></span> Lainnya</span>
+          <span class="legend-item"><span class="legend-dot status-antrian"></span> OPEN</span>
+          <span class="legend-item"><span class="legend-dot status-terpasang"></span> CLOSE</span>
+          <span class="legend-item"><span class="legend-dot status-pending"></span> KENDALA</span>
         </div>
       </section>
     </main>
