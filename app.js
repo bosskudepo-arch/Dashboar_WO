@@ -770,38 +770,37 @@ function renderDashboard() {
   const countClosed = filtered.filter(t => ["CLOSE", "COMPLETE PS", "BERHENTI BERLANGGANAN"].includes((t.STATUS || "").toUpperCase().trim())).length;
   const countOpen = countTotal - countClosed;
   
-  // Hitung OLT Down
-  const activeOltTickets = filtered.filter(t => t.parsedSegment === "OLT" && !["CLOSE", "COMPLETE PS", "BERHENTI BERLANGGANAN"].includes((t.STATUS || "").toUpperCase().trim()));
-  DOM.kpiOltDownCount.textContent = activeOltTickets.length;
+  // Hitung Tiket Open Terlama (KPI Card 1)
+  const activeOpenTickets = filtered.filter(t => !["CLOSE", "COMPLETE PS", "BERHENTI BERLANGGANAN"].includes((t.STATUS || "").toUpperCase().trim()))
+    .sort((a, b) => b.parsedTTR - a.parsedTTR);
+  DOM.kpiOltDownCount.textContent = activeOpenTickets.length;
   
-  // Render OLT scrolling list
-  let oltHtml = "";
-  if (activeOltTickets.length > 0) {
-    activeOltTickets.forEach(t => {
+  // Render scrolling list of oldest open tickets
+  let oldestHtml = "";
+  if (activeOpenTickets.length > 0) {
+    activeOpenTickets.slice(0, 15).forEach(t => {
       const formattedTime = formatTTRString(t.parsedTTR);
-      oltHtml += `
-        <li class="olt-item" onclick="openDetailsModal('${t.Teknisi || ''}', '', 'all')">
-          <span class="olt-sto">${t.parsedSTO}</span>
-          <span class="olt-name" title="${t.ALPRO}">${t.ALPRO}</span>
-          <span class="olt-time">${formattedTime}</span>
+      oldestHtml += `
+        <li class="olt-item" onclick="openDetailsModal('', '', 'all')">
+          <span class="olt-sto">${t.parsedSTO || "-"}</span>
+          <span class="olt-name" title="${t.ALPRO || ""}">${t.PAKET || ""} - ${t.ALPRO || ""}</span>
+          <span class="olt-time" style="color: var(--text-orange); font-weight: bold;">${formattedTime}</span>
         </li>
       `;
     });
   } else {
-    oltHtml = '<li class="olt-item" style="justify-content: center; color: var(--text-muted);">Tidak ada OLT Down</li>';
+    oldestHtml = '<li class="olt-item" style="justify-content: center; color: var(--text-muted);">Tidak ada tiket open</li>';
   }
-  DOM.oltActiveList.innerHTML = oltHtml;
+  DOM.oltActiveList.innerHTML = oldestHtml;
   
   // Update KPI card values
   DOM.kpiTotalTickets.textContent = countTotal;
   DOM.kpiOpenBackend.textContent = countOpen;
   DOM.kpiClosed.textContent = countClosed;
   
-  // Hitung Rata-rata TTR
-  let totalTtr = 0;
-  filtered.forEach(t => totalTtr += t.parsedTTR);
-  const avgTtr = countTotal > 0 ? (totalTtr / countTotal) : 0;
-  DOM.kpiAvgTtr.textContent = formatTTRString(avgTtr);
+  // Hitung Total Tiket Urgent MPW & STA (KPI Card 5)
+  const countUrgentMpwSta = filtered.filter(t => t.SHEET_SOURCE === "TIKET URGENT MPW" || t.SHEET_SOURCE === "TIKET URGENT STA").length;
+  DOM.kpiAvgTtr.textContent = countUrgentMpwSta;
   
   // Render Sparklines
   renderSparklines();
@@ -933,50 +932,95 @@ function renderSparklines() {
 
 // Perhitungan Compliance SLA dan progress bar
 function renderSLACompliance(filtered) {
-  // Hitung Compliance per segmen
-  const segments = ["Distribusi", "Feeder", "ODC", "ODP", "OLT"];
-  const targetTimes = { "Distribusi": 4, "Feeder": 10, "ODC": 10, "ODP": 5, "OLT": 6 };
-  const targetsVal = { "Distribusi": 67.34, "Feeder": 74.95, "ODC": 94.97, "ODP": 74.53, "OLT": 85.00 };
+  // Hitung tiket per teknisi
+  const techOpenCounts = {};
+  const techTotalCounts = {};
   
-  let totalWithTtr = 0;
-  let totalCompliant = 0;
-
-  segments.forEach(seg => {
-    const segTickets = filtered.filter(t => t.parsedSegment === seg);
-    const countTotalSeg = segTickets.length;
-    const countCompliant = segTickets.filter(t => t.parsedTTR < targetTimes[seg]).length;
-    
-    const percentage = countTotalSeg > 0 ? (countCompliant / countTotalSeg) * 100 : 0;
-    const achieve = percentage >= targetsVal[seg];
-    
-    totalWithTtr += countTotalSeg;
-    totalCompliant += countCompliant;
-
-    // Mapping elements
-    const prefix = seg.toLowerCase();
-    const badgeEl = DOM[`slaBadge${seg}`];
-    const valEl = DOM[`slaVal${seg}`];
-    const countsEl = DOM[`slaCounts${seg}`];
-    const barEl = DOM[`slaBar${seg}`];
-
-    if (badgeEl) {
-      badgeEl.textContent = achieve ? "ACHIEVE" : "BELUM";
-      badgeEl.className = `sla-status-badge ${achieve ? 'achieve' : 'alert'}`;
+  filtered.forEach(t => {
+    const tech = t.Teknisi || "Tanpa Teknisi";
+    const isClosed = ["CLOSE", "COMPLETE PS", "BERHENTI BERLANGGANAN"].includes((t.STATUS || "").toUpperCase().trim());
+    if (!isClosed) {
+      techOpenCounts[tech] = (techOpenCounts[tech] || 0) + 1;
     }
-    if (valEl) {
-      valEl.textContent = `${percentage.toFixed(2)}%`;
-      valEl.className = `sla-percentage ${achieve ? 'green-text' : 'orange-text'}`;
-    }
-    if (countsEl) {
-      countsEl.textContent = `target ${targetsVal[seg]}% • ${countCompliant}/${countTotalSeg} tiket`;
-    }
-    if (barEl) {
-      barEl.style.width = `${percentage}%`;
-      barEl.className = `progress-bar-fill ${achieve ? 'green-bg' : 'orange-bg'}`;
+    techTotalCounts[tech] = (techTotalCounts[tech] || 0) + 1;
+  });
+  
+  // Sort teknisi berdasarkan tiket open terbanyak
+  const topTechs = Object.keys(techOpenCounts)
+    .map(tech => ({
+      name: tech,
+      open: techOpenCounts[tech],
+      total: techTotalCounts[tech] || techOpenCounts[tech]
+    }))
+    .sort((a, b) => b.open - a.open)
+    .slice(0, 5);
+
+  const cardKeys = ["Distribusi", "Feeder", "Odc", "Odp", "Olt"];
+  
+  cardKeys.forEach((key, idx) => {
+    const nameEl = document.getElementById(`sla-name-${key.toLowerCase()}`);
+    const targetEl = document.getElementById(`sla-target-${key.toLowerCase()}`);
+    const badgeEl = DOM[`slaBadge${key}`];
+    const valEl = DOM[`slaVal${key}`];
+    const countsEl = DOM[`slaCounts${key}`];
+    const barEl = DOM[`slaBar${key}`];
+
+    const techData = topTechs[idx];
+
+    if (techData) {
+      // Hitung rasio open vs total
+      const openRatio = techData.open / techData.total;
+      const progressPercent = Math.max(0, Math.min(100, (1 - openRatio) * 100)); // Rasio tiket yang diselesaikan (closed)
+
+      if (nameEl) nameEl.textContent = techData.name;
+      if (targetEl) targetEl.textContent = `Beban Kerja`;
+      if (badgeEl) {
+        badgeEl.textContent = "OPEN";
+        badgeEl.className = "sla-status-badge alert";
+      }
+      if (valEl) {
+        valEl.textContent = `${techData.open} WO`;
+        valEl.className = "sla-percentage orange-text";
+      }
+      if (countsEl) {
+        countsEl.textContent = `Open: ${techData.open} dari total ${techData.total} tiket`;
+      }
+      if (barEl) {
+        barEl.style.width = `${progressPercent}%`;
+        barEl.className = "progress-bar-fill orange-bg";
+      }
+    } else {
+      // Kosongkan atau sembunyikan jika tidak ada teknisi ke-X
+      if (nameEl) nameEl.textContent = "-";
+      if (targetEl) targetEl.textContent = "-";
+      if (badgeEl) {
+        badgeEl.textContent = "-";
+        badgeEl.className = "sla-status-badge";
+      }
+      if (valEl) {
+        valEl.textContent = "0 WO";
+        valEl.className = "sla-percentage green-text";
+      }
+      if (countsEl) {
+        countsEl.textContent = "Tidak ada beban tiket";
+      }
+      if (barEl) {
+        barEl.style.width = `0%`;
+        barEl.className = "progress-bar-fill green-bg";
+      }
     }
   });
 
-  // Compliance Banner
+  // Compliance Banner (hitung total persentase compliance untuk seluruh data terfilter)
+  let totalWithTtr = 0;
+  let totalCompliant = 0;
+  filtered.forEach(t => {
+    // Anggap tiket compliant jika TTR kurang dari 8 jam (atau 6 jam default)
+    if (t.parsedTTR > 0) {
+      totalWithTtr++;
+      if (t.parsedTTR < 8) totalCompliant++;
+    }
+  });
   const totalPercentage = totalWithTtr > 0 ? (totalCompliant / totalWithTtr) * 100 : 0;
   const noSlaCount = filtered.length - totalWithTtr;
   const noSlaPercent = filtered.length > 0 ? (noSlaCount / filtered.length) * 100 : 0;
@@ -1057,24 +1101,26 @@ function renderCloseVsOpenChart(filtered) {
   });
 }
 
-// 2. INNER vs OUTER Donut Chart
+// 2. Persentase Tiket Open & Close Donut Chart
 function renderInnerVsOuterChart(filtered) {
-  const counts = { INNER: 0, OUTER: 0 };
+  const counts = { OPEN: 0, CLOSED: 0 };
   filtered.forEach(t => {
-    if (t.parsedInnerOuter === "INNER") counts.INNER++;
-    else counts.OUTER++;
+    const isClosed = ["CLOSE", "COMPLETE PS", "BERHENTI BERLANGGANAN"].includes((t.STATUS || "").toUpperCase().trim());
+    if (isClosed) counts.CLOSED++;
+    else counts.OPEN++;
   });
   
-  DOM.innerOuterCenterVal.innerHTML = `${counts.INNER + counts.OUTER}<br><span class="center-sublabel">Total</span>`;
+  const total = counts.OPEN + counts.CLOSED;
+  DOM.innerOuterCenterVal.innerHTML = `${total}<br><span class="center-sublabel">Total</span>`;
 
   const ctx = document.getElementById('chart-inner-vs-outer').getContext('2d');
   appState.charts.innerVsOuter = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: [`Inner ${counts.INNER}`, `Outer ${counts.OUTER}`],
+      labels: [`Open ${counts.OPEN}`, `Close ${counts.CLOSED}`],
       datasets: [{
-        data: [counts.INNER, counts.OUTER],
-        backgroundColor: ['rgba(0, 122, 255, 0.85)', 'rgba(0, 240, 255, 0.85)'],
+        data: [counts.OPEN, counts.CLOSED],
+        backgroundColor: ['rgba(249, 115, 22, 0.85)', 'rgba(16, 185, 129, 0.85)'],
         borderColor: '#0f1524',
         borderWidth: 2
       }]
@@ -1090,30 +1136,22 @@ function renderInnerVsOuterChart(filtered) {
   });
 }
 
-// 3. Tiket per STO - Pareto
+// 3. Tiket Close per STO
 function renderStoParetoChart(filtered) {
-  const stoCounts = {};
+  const stoClosedCounts = {};
   filtered.forEach(t => {
-    if (t.parsedSTO) {
-      stoCounts[t.parsedSTO] = (stoCounts[t.parsedSTO] || 0) + 1;
+    const isClosed = ["CLOSE", "COMPLETE PS", "BERHENTI BERLANGGANAN"].includes((t.STATUS || "").toUpperCase().trim());
+    if (isClosed && t.parsedSTO) {
+      stoClosedCounts[t.parsedSTO] = (stoClosedCounts[t.parsedSTO] || 0) + 1;
     }
   });
 
-  // Urutkan menurun
-  const sortedStos = Object.keys(stoCounts)
-    .map(sto => ({ sto: sto, count: stoCounts[sto] }))
+  const sortedStos = Object.keys(stoClosedCounts)
+    .map(sto => ({ sto: sto, count: stoClosedCounts[sto] }))
     .sort((a, b) => b.count - a.count);
   
   const labels = sortedStos.map(item => item.sto);
   const dataCounts = sortedStos.map(item => item.count);
-  
-  // Hitung kumulatif pareto
-  const totalCount = dataCounts.reduce((a, b) => a + b, 0);
-  let acc = 0;
-  const paretoData = dataCounts.map(c => {
-    acc += c;
-    return totalCount > 0 ? (acc / totalCount) * 100 : 0;
-  });
 
   const ctx = document.getElementById('chart-sto-pareto').getContext('2d');
   appState.charts.stoPareto = new Chart(ctx, {
@@ -1122,22 +1160,10 @@ function renderStoParetoChart(filtered) {
       labels: labels,
       datasets: [
         {
-          type: 'bar',
-          label: 'Tiket',
+          label: 'Tiket Close',
           data: dataCounts,
-          backgroundColor: 'rgba(0, 240, 255, 0.8)',
-          borderRadius: 4,
-          yAxisID: 'y'
-        },
-        {
-          type: 'line',
-          label: 'Cumulative %',
-          data: paretoData,
-          borderColor: 'rgba(168, 85, 247, 0.9)',
-          borderWidth: 1.8,
-          pointRadius: 2,
-          yAxisID: 'yCumulative',
-          tension: 0.1
+          backgroundColor: 'rgba(0, 240, 255, 0.85)',
+          borderRadius: 4
         }
       ]
     },
@@ -1149,14 +1175,7 @@ function renderStoParetoChart(filtered) {
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 } } },
-        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 9 } }, position: 'left' },
-        yCumulative: {
-          position: 'right',
-          min: 0,
-          max: 100,
-          ticks: { color: '#64748b', font: { size: 9 }, callback: (v) => `${v}%` },
-          grid: { display: false }
-        }
+        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 9 } } }
       }
     }
   });
@@ -1207,24 +1226,29 @@ function renderAgingTTRProgressBars(filtered) {
   DOM.escalationAlertText.textContent = `${eskalasiCount} Fokus eskalasi — tiket dengan TTR > 8 jam (${eskalasiPercent.toFixed(1)}% dari total). Prioritaskan untuk kurangi SLA breach.`;
 }
 
-// 5. Komposisi SQM vs Manual Donut Chart
+// 5. Tiket Urgent Open vs Close Donut Chart
 function renderSqmVsManualChart(filtered) {
-  const counts = { SQM: 0, Manual: 0 };
+  const counts = { OPEN: 0, CLOSED: 0 };
   filtered.forEach(t => {
-    if (t.parsedOrigin === "SQM") counts.SQM++;
-    else counts.Manual++;
+    const isUrgent = (t.SHEET_SOURCE || "").toUpperCase().includes("URGENT");
+    if (isUrgent) {
+      const isClosed = ["CLOSE", "COMPLETE PS", "BERHENTI BERLANGGANAN"].includes((t.STATUS || "").toUpperCase().trim());
+      if (isClosed) counts.CLOSED++;
+      else counts.OPEN++;
+    }
   });
   
-  DOM.sqmManualCenterVal.innerHTML = `${counts.SQM + counts.Manual}<br><span class="center-sublabel">TIKET</span>`;
+  const total = counts.OPEN + counts.CLOSED;
+  DOM.sqmManualCenterVal.innerHTML = `${total}<br><span class="center-sublabel">URGENT</span>`;
 
   const ctx = document.getElementById('chart-sqm-vs-manual').getContext('2d');
   appState.charts.sqmVsManual = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: [`SQM ${counts.SQM}`, `MANUAL ${counts.Manual}`],
+      labels: [`Open ${counts.OPEN}`, `Close ${counts.CLOSED}`],
       datasets: [{
-        data: [counts.SQM, counts.Manual],
-        backgroundColor: ['rgba(0, 240, 255, 0.85)', 'rgba(249, 115, 22, 0.85)'],
+        data: [counts.OPEN, counts.CLOSED],
+        backgroundColor: ['rgba(249, 115, 22, 0.85)', 'rgba(16, 185, 129, 0.85)'],
         borderColor: '#0f1524',
         borderWidth: 2
       }]
@@ -1240,23 +1264,21 @@ function renderSqmVsManualChart(filtered) {
   });
 }
 
-// 6. Root Cause Analysis (Top 8)
+// 6. Beban Tiket Teknisi (Top 8)
 function renderRootCauseChart(filtered) {
-  const rcaCounts = {};
+  const techCounts = {};
   filtered.forEach(t => {
-    if (t.parsedRCA) {
-      rcaCounts[t.parsedRCA] = (rcaCounts[t.parsedRCA] || 0) + 1;
-    }
+    const tech = t.Teknisi || "Tanpa Teknisi";
+    techCounts[tech] = (techCounts[tech] || 0) + 1;
   });
 
-  const sortedRca = Object.keys(rcaCounts)
-    .map(r => ({ rca: r, count: rcaCounts[r] }))
+  const sortedTech = Object.keys(techCounts)
+    .map(tech => ({ name: tech, count: techCounts[tech] }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8); // Ambil 8 teratas
 
-  const labels = sortedRca.map(item => item.rca);
-  const dataCounts = sortedRca.map(item => item.count);
-  const total = dataCounts.reduce((a, b) => a + b, 0);
+  const labels = sortedTech.map(item => item.name);
+  const dataCounts = sortedTech.map(item => item.count);
 
   const colors = [
     'rgba(249, 115, 22, 0.85)',
@@ -1472,22 +1494,27 @@ function renderBottomTables(filtered) {
   
   DOM.openTicketsBadge.textContent = `${openTickets.length} AKTIF`;
   
-  // 1. Render Tiket Open Table
+  // 1. Render Tiket Open Table (Top 5 Oldest Open Tickets)
   let openRows = "";
   if (openTickets.length > 0) {
-    // Tampilkan 15 tiket open terbaru
-    const sortedOpen = [...openTickets].sort((a, b) => b.parsedTTR - a.parsedTTR).slice(0, 15);
+    const sortedOpen = [...openTickets].sort((a, b) => b.parsedTTR - a.parsedTTR).slice(0, 5);
     sortedOpen.forEach(t => {
       const timeStr = formatTTRString(t.parsedTTR);
       const isBackend = t.parsedOrigin === "SQM" ? "backend" : "field";
       const statusLabel = t.parsedOrigin === "SQM" ? "BACKEND" : "FIELD";
       
+      const paketText = t.PAKET || "";
+      const alproText = t.ALPRO || "";
+      const custText = t.CUST_NAME || "";
+      const inetText = t.INET_NUMBER || "";
+      const descText = `[${paketText}] ${alproText} | Cust: ${custText} | Inet: ${inetText}`;
+
       openRows += `
         <tr>
           <td><a href="#" class="ticket-link" onclick="openDetailsModal('${t.Teknisi || ''}', '${t.STATUS}', 'status')">${t.WONUM}</a></td>
           <td>
-            <div class="ticket-desc" title="[${t.parsedOrigin}] [${t.ALPRO}] | OLT [SUSPECT RCA: ${t.parsedRCA}]">
-              <strong>[${t.parsedOrigin}]</strong> [${t.ALPRO}] | OLT [SUSPECT RCA: ${t.parsedRCA}]
+            <div class="ticket-desc" title="${descText}">
+              <strong>[${paketText}]</strong> ${alproText} | Cust: ${custText} | Inet: ${inetText}
             </div>
           </td>
           <td><span class="badge">${t.parsedSTO}</span></td>
@@ -1502,18 +1529,27 @@ function renderBottomTables(filtered) {
   }
   DOM.tableOpenTicketsBody.innerHTML = openRows;
 
-  // 2. Render Top-5 TTR Terlama Table
+  // 2. Render Tiket Undsepc Table (Top 5 Oldest from UNDSEPC STA)
+  const undsepcTickets = filtered.filter(t => (t.SHEET_SOURCE || "").toUpperCase().includes("UNDSEPC"));
+  
   let oldestRows = "";
-  if (openTickets.length > 0) {
-    const topOldest = [...openTickets].sort((a, b) => b.parsedTTR - a.parsedTTR).slice(0, 5);
-    topOldest.forEach(t => {
+  if (undsepcTickets.length > 0) {
+    const topUndsepc = [...undsepcTickets].sort((a, b) => b.parsedTTR - a.parsedTTR).slice(0, 5);
+    topUndsepc.forEach(t => {
       const timeStr = formatTTRString(t.parsedTTR);
+      
+      const paketText = t.PAKET || "";
+      const alproText = t.ALPRO || "";
+      const custText = t.CUST_NAME || "";
+      const inetText = t.INET_NUMBER || "";
+      const descText = `[${paketText}] ${alproText} | Cust: ${custText} | Inet: ${inetText}`;
+
       oldestRows += `
         <tr>
           <td><a href="#" class="ticket-link" onclick="openDetailsModal('${t.Teknisi || ''}', '${t.STATUS}', 'status')">${t.WONUM}</a></td>
           <td>
-            <div class="ticket-desc" title="[${t.parsedOrigin}] [${t.ALPRO}] | OLT [SUSPECT RCA: ${t.parsedRCA}]">
-              <strong>[${t.parsedOrigin}]</strong> [${t.ALPRO}] | OLT [SUSPECT RCA: ${t.parsedRCA}]
+            <div class="ticket-desc" title="${descText}">
+              <strong>[${paketText}]</strong> ${alproText} | Cust: ${custText} | Inet: ${inetText}
             </div>
           </td>
           <td><span class="badge">${t.parsedSTO}</span></td>
@@ -1522,7 +1558,7 @@ function renderBottomTables(filtered) {
       `;
     });
   } else {
-    oldestRows = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Tidak ada tiket open aktif</td></tr>';
+    oldestRows = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Tidak ada tiket undsepc</td></tr>';
   }
   DOM.tableOldestTicketsBody.innerHTML = oldestRows;
 }

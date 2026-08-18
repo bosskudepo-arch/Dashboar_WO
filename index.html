@@ -177,7 +177,7 @@
         <!-- SECTION 1: Subtitle & Area Title -->
         <section class="overview-header-section">
           <div class="overview-subtitle">OPERATIONAL OVERVIEW • INCIDENT MONITORING</div>
-          <h1 class="overview-title">Territory TIF Area 4 - Regional Kalimantan - District Pontianak</h1>
+          <h1 class="overview-title">Mempawah - Siantan</h1>
         </section>
 
         <!-- SECTION 2: Key Performance Indicators (KPI) Card Grid -->
@@ -185,7 +185,7 @@
           <!-- Card 1: OLT Down -->
           <div class="kpi-card olt-down-card">
             <div class="kpi-card-header">
-              <span class="kpi-title">OLT Down</span>
+              <span class="kpi-title">Tiket Open Terlama</span>
               <i data-lucide="server-off" class="kpi-card-icon red-icon"></i>
             </div>
             <div class="kpi-value-container">
@@ -253,21 +253,21 @@
             </div>
           </div>
 
-          <!-- Card 5: Avg TTR -->
+          <!-- Card 5: Total Tiket Urgent MPW & STA -->
           <div class="kpi-card">
             <div class="kpi-card-header">
-              <span class="kpi-title">Avg TTR</span>
-              <i data-lucide="hourglass" class="kpi-card-icon purple-icon"></i>
+              <span class="kpi-title">Total Tiket Urgent MPW & STA</span>
+              <i data-lucide="alert-circle" class="kpi-card-icon purple-icon"></i>
             </div>
             <div class="kpi-value-container">
-              <span class="kpi-value purple-text" id="kpi-avg-ttr">5:54</span>
+              <span class="kpi-value purple-text" id="kpi-avg-ttr">0</span>
               <div class="sparkline-container">
                 <canvas id="sparkline-ttr"></canvas>
               </div>
             </div>
             <div class="kpi-trend-footer red-trend">
-              <i data-lucide="arrow-up-right"></i>
-              <span id="trend-ttr-percent">8.9%</span>
+              <i data-lucide="activity"></i>
+              <span>Urgent</span>
             </div>
           </div>
         </section>
@@ -284,10 +284,10 @@
           <!-- Distribusi -->
           <div class="sla-progress-card">
             <div class="sla-card-header">
-              <span class="sla-segment-name">Distribusi</span>
+              <span class="sla-segment-name" id="sla-name-distribusi">Distribusi</span>
               <span class="sla-status-badge achieve" id="sla-badge-distribusi">ACHIEVE</span>
             </div>
-            <div class="sla-target-time">TTR &lt; 4 Jam</div>
+            <div class="sla-target-time" id="sla-target-distribusi">TTR &lt; 4 Jam</div>
             <div class="sla-percentage green-text" id="sla-val-distribusi">69.84%</div>
             <div class="sla-counts" id="sla-counts-distribusi">target 67.34% • 44/63 tiket</div>
             <div class="progress-bar-bg">
@@ -298,10 +298,10 @@
           <!-- Feeder -->
           <div class="sla-progress-card">
             <div class="sla-card-header">
-              <span class="sla-segment-name">Feeder</span>
+              <span class="sla-segment-name" id="sla-name-feeder">Feeder</span>
               <span class="sla-status-badge achieve" id="sla-badge-feeder">ACHIEVE</span>
             </div>
-            <div class="sla-target-time">TTR &lt; 10 Jam</div>
+            <div class="sla-target-time" id="sla-target-feeder">TTR &lt; 10 Jam</div>
             <div class="sla-percentage green-text" id="sla-val-feeder">81.82%</div>
             <div class="sla-counts" id="sla-counts-feeder">target 74.95% • 9/11 tiket</div>
             <div class="progress-bar-bg">
@@ -312,10 +312,10 @@
           <!-- ODC -->
           <div class="sla-progress-card">
             <div class="sla-card-header">
-              <span class="sla-segment-name">ODC</span>
+              <span class="sla-segment-name" id="sla-name-odc">ODC</span>
               <span class="sla-status-badge achieve" id="sla-badge-odc">ACHIEVE</span>
             </div>
-            <div class="sla-target-time">TTR &lt; 10 Jam</div>
+            <div class="sla-target-time" id="sla-target-odc">TTR &lt; 10 Jam</div>
             <div class="sla-percentage green-text" id="sla-val-odc">100%</div>
             <div class="sla-counts" id="sla-counts-odc">target 94.97% • 10/10 tiket</div>
             <div class="progress-bar-bg">
@@ -326,10 +326,10 @@
           <!-- ODP -->
           <div class="sla-progress-card">
             <div class="sla-card-header">
-              <span class="sla-segment-name">ODP</span>
+              <span class="sla-segment-name" id="sla-name-odp">ODP</span>
               <span class="sla-status-badge achieve" id="sla-badge-odp">ACHIEVE</span>
             </div>
-            <div class="sla-target-time">TTR &lt; 5 Jam</div>
+            <div class="sla-target-time" id="sla-target-odp">TTR &lt; 5 Jam</div>
             <div class="sla-percentage green-text" id="sla-val-odp">100%</div>
             <div class="sla-counts" id="sla-counts-odp">target 74.53% • 1/1 tiket</div>
             <div class="progress-bar-bg">
@@ -340,10 +340,10 @@
           <!-- OLT -->
           <div class="sla-progress-card">
             <div class="sla-card-header">
-              <span class="sla-segment-name">OLT</span>
+              <span class="sla-segment-name" id="sla-name-olt">OLT</span>
               <span class="sla-status-badge alert" id="sla-badge-olt">BELUM</span>
             </div>
-            <div class="sla-target-time">TTR &lt; 6 Jam</div>
+            <div class="sla-target-time" id="sla-target-olt">TTR &lt; 6 Jam</div>
             <div class="sla-percentage orange-text" id="sla-val-olt">76.67%</div>
             <div class="sla-counts" id="sla-counts-olt">target 85% • 23/30 tiket</div>
             <div class="progress-bar-bg">
@@ -365,10 +365,10 @@
             </div>
           </div>
 
-          <!-- Chart Row 1, Card 2: INNER vs OUTER -->
+          <!-- Chart Row 1, Card 2: Persentase Tiket Open & Close -->
           <div class="chart-card card">
             <div class="chart-header">
-              <span class="chart-title-accent">INNER vs OUTER</span>
+              <span class="chart-title-accent">Persentase Tiket Open & Close</span>
             </div>
             <div class="chart-canvas-container donut-container">
               <canvas id="chart-inner-vs-outer"></canvas>
@@ -376,10 +376,10 @@
             </div>
           </div>
 
-          <!-- Chart Row 1, Card 3: Tiket per STO - Pareto -->
+          <!-- Chart Row 1, Card 3: Tiket Close -->
           <div class="chart-card card">
             <div class="chart-header">
-              <span class="chart-title-accent">Tiket per STO — Pareto</span>
+              <span class="chart-title-accent">Tiket Close</span>
             </div>
             <div class="chart-canvas-container">
               <canvas id="chart-sto-pareto"></canvas>
@@ -400,10 +400,10 @@
             </div>
           </div>
 
-          <!-- Chart Row 2, Card 2: Komposisi SQM vs Manual -->
+          <!-- Chart Row 2, Card 2: Tiket Urgent Open vs Close -->
           <div class="chart-card card">
             <div class="chart-header">
-              <span class="chart-title-accent">Komposisi SQM vs Manual</span>
+              <span class="chart-title-accent">Tiket Urgent Open vs Close</span>
             </div>
             <div class="chart-canvas-container donut-container">
               <canvas id="chart-sqm-vs-manual"></canvas>
@@ -411,10 +411,10 @@
             </div>
           </div>
 
-          <!-- Chart Row 2, Card 3: Root Cause Analysis (Top 8) -->
+          <!-- Chart Row 2, Card 3: Beban Tiket Teknisi (Top 8) -->
           <div class="chart-card card">
             <div class="chart-header">
-              <span class="chart-title-accent">Root Cause Analysis (Top 8)</span>
+              <span class="chart-title-accent">Beban Tiket Teknisi (Top 8)</span>
             </div>
             <div class="chart-canvas-container">
               <canvas id="chart-root-cause"></canvas>
@@ -484,10 +484,10 @@
             </div>
           </div>
 
-          <!-- Card Right: Top-5 TTR Terlama -->
+          <!-- Card Right: Tiket Undsepc -->
           <div class="table-card card">
             <div class="table-card-header">
-              <span class="table-card-title">Top-5 TTR Terlama</span>
+              <span class="table-card-title">Tiket Undsepc</span>
             </div>
             <div class="table-container">
               <table class="data-table" id="table-oldest-tickets">
