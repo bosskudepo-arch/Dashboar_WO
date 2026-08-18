@@ -3,231 +3,526 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Pivot Manajemen Tugas Teknisi</title>
-  <!-- Menggunakan Font Modern Google Fonts: Outfit & Inter -->
+  <title>Gamas Command - Incident Monitoring Dashboard</title>
+  
+  <!-- Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Lucide Icons untuk Ikon Premium -->
+  
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Menghubungkan File Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.1">
+  
+  <!-- Chart.js for gorgeous data visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=3.0">
+  
   <!-- PWA Manifest & Mobile Styling -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#040810">
+  <meta name="theme-color" content="#090e17">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icon-192.png">
 </head>
-<body class="dark-theme"> <!-- Secara default menggunakan tema gelap (Premium Slate Dark) -->
+<body class="dark-theme">
 
-  <!-- Wrapper Utama Aplikasi -->
-  <div class="app-container">
-
-    <!-- SIDEBAR: Kontrol, Pengaturan, dan Statistik Ringkas -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <i data-lucide="layout-dashboard" class="logo-icon"></i>
-          <span>PivotTask</span>
+  <!-- Main Container -->
+  <div class="app-layout">
+    
+    <!-- LEFT SIDEBAR: Navigasi dan Quick Stats/Settings -->
+    <aside class="sidebar-nav">
+      <div class="brand-container">
+        <div class="brand-logo">
+          <i data-lucide="shield-alert" class="brand-icon"></i>
+          <span>Gamas Command</span>
         </div>
-        <button id="theme-toggle" class="btn-icon" title="Ganti Tema (Gelap/Terang)">
-          <i data-lucide="sun" class="sun-icon"></i>
-          <i data-lucide="moon" class="moon-icon"></i>
-        </button>
       </div>
+      
+      <!-- Navigasi Menu -->
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="command" id="tab-command">
+          <i data-lucide="terminal"></i>
+          <span>Command</span>
+        </button>
+        <button class="nav-item" data-tab="detail" id="tab-detail">
+          <i data-lucide="list-todo"></i>
+          <span>Detail</span>
+        </button>
+        <button class="nav-item" data-tab="teknisi" id="tab-teknisi">
+          <i data-lucide="users"></i>
+          <span>Teknisi</span>
+        </button>
+        <button class="nav-item" data-tab="overview-sa" id="tab-overview-sa">
+          <i data-lucide="activity"></i>
+          <span>Overview SA</span>
+        </button>
+        <button class="nav-item" data-tab="insight" id="tab-insight">
+          <i data-lucide="brain-circuit"></i>
+          <span>Insight</span>
+        </button>
+        <button class="nav-item" data-tab="material" id="tab-material">
+          <i data-lucide="package-open"></i>
+          <span>Material</span>
+        </button>
+      </nav>
 
-      <!-- Section: Status Sinkronisasi & Mode Kerja -->
-      <div class="sidebar-section card">
-        <h3><i data-lucide="database"></i> Mode Data</h3>
+      <!-- Sidebar Bottom: Mode data & Sinkronisasi -->
+      <div class="sidebar-bottom-config card">
+        <div class="config-header">
+          <i data-lucide="database"></i>
+          <span>Mode Data</span>
+        </div>
         
-        <div class="mode-switch-container">
-          <span class="mode-label">Demo (Mock Data)</span>
+        <div class="mode-switch-wrapper">
+          <span class="mode-text active" id="mode-label-demo">Demo</span>
           <label class="switch">
             <input type="checkbox" id="data-mode-toggle">
             <span class="slider round"></span>
           </label>
-          <span class="mode-label">Google Sheets</span>
+          <span class="mode-text" id="mode-label-sheets">Sheets</span>
         </div>
 
-        <div id="sheets-config-area" class="sheets-config hidden">
-          <label for="web-app-url">Google Web App URL:</label>
-          <div class="input-with-icon">
-            <i data-lucide="link-2"></i>
-            <input type="url" id="web-app-url" placeholder="https://script.google.com/macros/s/.../exec">
-          </div>
-          <p class="help-text">Salin URL deploy Web App dari Google Apps Script Anda.</p>
+        <div id="sheets-config-area" class="sheets-config-field hidden">
+          <label for="web-app-url">Web App URL:</label>
+          <input type="url" id="web-app-url" placeholder="https://script.google.com/...">
         </div>
-
-        <div class="status-indicator-wrapper">
-          <div class="status-indicator">
-            <span class="status-dot online" id="status-dot"></span>
-            <span id="status-text">Demo Mode Aktif</span>
-          </div>
-          <button id="refresh-btn" class="btn btn-secondary btn-sm">
-            <i data-lucide="refresh-cw"></i> Refresh
+        
+        <div class="sync-action-row">
+          <button id="refresh-btn" class="btn-refresh" title="Sinkronkan Ulang">
+            <i data-lucide="refresh-cw"></i> Sinkronkan
           </button>
         </div>
       </div>
-
-      <!-- Section: Statistik Ringkas -->
-      <div class="sidebar-section card">
-        <h3><i data-lucide="pie-chart"></i> Statistik WO</h3>
-        <div class="stats-grid">
-          <div class="stat-box stat-full-width">
-            <span class="stat-value" id="stat-total-wo">0</span>
-            <span class="stat-label">Total WO</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value text-info" id="stat-ogp-wo">0</span>
-            <span class="stat-label">OPEN</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value text-success" id="stat-terpasang-wo">0</span>
-            <span class="stat-label">CLOSE</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value text-danger" id="stat-kp-wo">0</span>
-            <span class="stat-label">KENDALA</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value text-success" style="color: #6ee7b7 !important;" id="stat-completeps-wo">0</span>
-            <span class="stat-label">Complete PS</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Section: Leaderboard Complete PS -->
-      <div class="sidebar-section card">
-        <h3><i data-lucide="trophy" class="text-warning"></i> Leaderboard Tim</h3>
-        <p class="help-text" style="margin-bottom: 12px; font-size: 0.7rem;">Berdasarkan jumlah Complete PS saat ini</p>
-        <div class="leaderboard-list" id="leaderboard-list">
-          <!-- Item leaderboard akan dirender secara dinamis dari JS -->
-        </div>
-      </div>
-
-      <!-- Panduan Singkat Setup untuk Pengguna -->
-      <div class="sidebar-section guide-card">
-        <h4><i data-lucide="info"></i> Cara Hubungkan Sheets</h4>
-        <ol>
-          <li>Buka file Google Sheets Anda.</li>
-          <li>Pilih <strong>Ekstensi</strong> &gt; <strong>Apps Script</strong>.</li>
-          <li>Salin kode dari <code>google-apps-script.js</code> ke sana.</li>
-          <li>Klik <strong>Terapkan</strong> &gt; <strong>Penerapan Baru</strong>.</li>
-          <li>Pilih jenis <strong>Aplikasi Web</strong>, akses oleh <strong>Siapa Saja (Anyone)</strong>.</li>
-          <li>Salin URL Web App dan paste di atas.</li>
-        </ol>
-      </div>
     </aside>
 
-    <!-- CONTENT AREA: Dashboard Utama -->
-    <main class="main-content">
-      <header class="main-header">
-        <div class="header-titles">
-          <h1>Dashboard Progres WO Teknisi</h1>
-          <p>Memanajemen status WO dan teknisi secara real-time melalui pivot table interaktif.</p>
+    <!-- CONTENT WRAPPER -->
+    <div class="content-wrapper">
+      
+      <!-- TOP NAVIGATION BAR: Filters & Sync Status -->
+      <header class="top-nav-bar">
+        <div class="filters-container">
+          <!-- TIP Filter -->
+          <div class="filter-group">
+            <label>TIP</label>
+            <select id="filter-tip" class="filter-select">
+              <option value="Semua" selected>Semua</option>
+              <option value="SQM">SQM</option>
+              <option value="Manual">Manual</option>
+            </select>
+          </div>
+          
+          <!-- TIPE Filter -->
+          <div class="filter-group">
+            <label>TIPE</label>
+            <select id="filter-tipe" class="filter-select">
+              <option value="Semua" selected>Semua</option>
+              <option value="HVC_GOLD">HVC Gold</option>
+              <option value="HVC_PLATINUM">HVC Platinum</option>
+              <option value="REGULER">Reguler</option>
+              <option value="MANJA">Manja</option>
+            </select>
+          </div>
+          
+          <!-- SA Filter -->
+          <div class="filter-group">
+            <label>SA</label>
+            <select id="filter-sa" class="filter-select">
+              <option value="Semua" selected>Semua</option>
+            </select>
+          </div>
+          
+          <!-- STO Filter -->
+          <div class="filter-group">
+            <label>STO</label>
+            <select id="filter-sto" class="filter-select">
+              <option value="Semua" selected>Semua</option>
+            </select>
+          </div>
+          
+          <!-- WCA Filter -->
+          <div class="filter-group">
+            <label>WCA</label>
+            <select id="filter-wca" class="filter-select">
+              <option value="Semua" selected>Semua</option>
+            </select>
+          </div>
+          
+          <!-- Date Filter (DARI) -->
+          <div class="filter-group date-group">
+            <label>DARI</label>
+            <input type="date" id="filter-date-start" class="filter-date">
+          </div>
+          
+          <!-- Date Filter (SAMPAI) -->
+          <div class="filter-group date-group">
+            <label>SAMPAI</label>
+            <input type="date" id="filter-date-end" class="filter-date">
+          </div>
         </div>
-        
-        <!-- Filter Pencarian Cepat Global -->
-        <div class="search-bar">
-          <i data-lucide="search"></i>
-          <input type="text" id="global-search" placeholder="Cari Nama Pelanggan, No WO, No Internet, Alamat...">
+
+        <!-- Right Side: Sync status & actions -->
+        <div class="top-bar-right">
+          <div class="sync-status">
+            <span class="sync-dot blinking" id="status-dot"></span>
+            <span class="sync-time" id="status-text">sinkron 18.26.02</span>
+          </div>
+          <button id="report-btn" class="btn-report">
+            <i data-lucide="file-text"></i> Report
+          </button>
         </div>
       </header>
 
-      <!-- Panel Notifikasi / Loading / Error -->
-      <div id="loader" class="loader-overlay hidden">
-        <div class="spinner"></div>
-        <p>Memproses data...</p>
-      </div>
+      <!-- MAIN CONTENT CONTAINER -->
+      <main class="main-dashboard-body">
+        
+        <!-- SECTION 1: Subtitle & Area Title -->
+        <section class="overview-header-section">
+          <div class="overview-subtitle">OPERATIONAL OVERVIEW • INCIDENT MONITORING</div>
+          <h1 class="overview-title">Territory TIF Area 4 - Regional Kalimantan - District Pontianak</h1>
+        </section>
 
-      <div id="alert-container" class="alert-container"></div>
-
-      <!-- SCOREBOARD SECTION -->
-      <section class="scoreboard-section card">
-        <div class="scoreboard-header">
-          <div class="scoreboard-title-group">
-            <i data-lucide="trophy" class="scoreboard-title-icon text-warning"></i>
-            <h2>KAWAL SA MEMPAWAH</h2>
-          </div>
-          <span class="badge scoreboard-live-badge">Live Monitor</span>
-        </div>
-        <div class="scoreboard-grid">
-          <!-- Kolom 1: Persentase Tiket Open -->
-          <div class="scoreboard-card score-open">
-            <div class="score-card-icon">
-              <i data-lucide="folder-open"></i>
+        <!-- SECTION 2: Key Performance Indicators (KPI) Card Grid -->
+        <section class="kpi-grid-container">
+          <!-- Card 1: OLT Down -->
+          <div class="kpi-card olt-down-card">
+            <div class="kpi-card-header">
+              <span class="kpi-title">OLT Down</span>
+              <i data-lucide="server-off" class="kpi-card-icon red-icon"></i>
             </div>
-            <div class="score-card-content">
-              <span class="score-label">PERSENTASE TIKET OPEN</span>
-              <span class="score-value" id="score-open-value">0.0%</span>
-              <span class="score-subtext" id="score-open-subtext" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">0 WO</span>
+            <div class="kpi-value-container">
+              <span class="kpi-value red-text" id="kpi-olt-down-count">3</span>
+            </div>
+            <!-- Auto-scrolling active OLT list -->
+            <div class="olt-scroller-box" id="olt-scroller-box">
+              <ul class="olt-active-list" id="olt-active-list">
+                <!-- Items populated by JS: e.g. <li class="olt-item"><span class="olt-sto">SED</span><span class="olt-name">GPON03...</span><span class="olt-time">2:54:27</span></li> -->
+              </ul>
             </div>
           </div>
 
-          <!-- Kolom 2: Persentase Tiket Close -->
-          <div class="scoreboard-card score-close">
-            <div class="score-card-icon" style="color: var(--color-success); background: var(--color-success-bg);">
-              <i data-lucide="check-circle-2"></i>
+          <!-- Card 2: Total Tiket -->
+          <div class="kpi-card">
+            <div class="kpi-card-header">
+              <span class="kpi-title">Total Tiket</span>
+              <i data-lucide="ticket" class="kpi-card-icon blue-icon"></i>
             </div>
-            <div class="score-card-content">
-              <span class="score-label">PERSENTASE TIKET CLOSE</span>
-              <span class="score-value" id="score-close-value" style="color: var(--color-success);">0.0%</span>
-              <span class="score-subtext" id="score-close-subtext" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">0 WO</span>
+            <div class="kpi-value-container">
+              <span class="kpi-value blue-text" id="kpi-total-tickets">122</span>
+              <div class="sparkline-container">
+                <canvas id="sparkline-total"></canvas>
+              </div>
+            </div>
+            <div class="kpi-trend-footer green-trend">
+              <i data-lucide="arrow-down-right"></i>
+              <span id="trend-total-percent">10.9%</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Open / Backend -->
+          <div class="kpi-card">
+            <div class="kpi-card-header">
+              <span class="kpi-title">Open / Backend</span>
+              <i data-lucide="clock" class="kpi-card-icon orange-icon"></i>
+            </div>
+            <div class="kpi-value-container">
+              <span class="kpi-value orange-text" id="kpi-open-backend">5</span>
+              <div class="sparkline-container">
+                <canvas id="sparkline-open"></canvas>
+              </div>
+            </div>
+            <div class="kpi-trend-footer orange-trend">
+              <i data-lucide="activity"></i>
+              <span>Active</span>
             </div>
           </div>
 
-          <!-- Kolom 3: Total Tiket -->
-          <div class="scoreboard-card score-total">
-            <div class="score-card-icon" style="color: #4BF0FC; background: rgba(75, 240, 252, 0.15);">
-              <i data-lucide="database"></i>
+          <!-- Card 4: Closed -->
+          <div class="kpi-card">
+            <div class="kpi-card-header">
+              <span class="kpi-title">Closed</span>
+              <i data-lucide="check-circle" class="kpi-card-icon green-icon"></i>
             </div>
-            <div class="score-card-content">
-              <span class="score-label">TOTAL TIKET (SHEET)</span>
-              <span class="score-value" id="score-total-value" style="color: #4BF0FC;">0</span>
-              <span class="score-subtext" id="score-total-subtext" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Semua Tiket</span>
+            <div class="kpi-value-container">
+              <span class="kpi-value green-text" id="kpi-closed">117</span>
+              <div class="sparkline-container">
+                <canvas id="sparkline-closed"></canvas>
+              </div>
+            </div>
+            <div class="kpi-trend-footer red-trend">
+              <i data-lucide="arrow-down-right"></i>
+              <span id="trend-closed-percent">14.6%</span>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- MAIN CONTAINER: Pivot Progress Table -->
-      <section class="dashboard-section card pivot-section">
-        <div class="section-header">
-          <div class="section-title-group">
-            <i data-lucide="grid" class="section-icon"></i>
-            <h2>Pivot Progress Kerja Teknisi</h2>
+          <!-- Card 5: Avg TTR -->
+          <div class="kpi-card">
+            <div class="kpi-card-header">
+              <span class="kpi-title">Avg TTR</span>
+              <i data-lucide="hourglass" class="kpi-card-icon purple-icon"></i>
+            </div>
+            <div class="kpi-value-container">
+              <span class="kpi-value purple-text" id="kpi-avg-ttr">5:54</span>
+              <div class="sparkline-container">
+                <canvas id="sparkline-ttr"></canvas>
+              </div>
+            </div>
+            <div class="kpi-trend-footer red-trend">
+              <i data-lucide="arrow-up-right"></i>
+              <span id="trend-ttr-percent">8.9%</span>
+            </div>
           </div>
-          <span class="badge" id="data-updated-time">Terakhir diperbarui: -</span>
-        </div>
+        </section>
 
-        <!-- Menu Filter Tab per Sheet -->
-        <div class="sheet-tabs-container" id="sheet-tabs-container"></div>
+        <!-- SECTION 3: TTR Compliance Banner -->
+        <section class="compliance-banner-section card">
+          <div class="compliance-banner-text" id="compliance-banner-text">
+            TTR COMPLIANCE GAMAS AKSES - TARGET PI 2656 - 115 dari 122 tiket ber-TTR; Tanpa segera (5.7%) Tidak dihitung
+          </div>
+        </section>
 
-        <div class="table-responsive-container">
-          <!-- Tabel Pivot akan dirender secara dinamis di sini -->
-          <table class="pivot-table" id="pivot-table">
-            <thead>
-              <!-- Kolom status akan di-render dari JS -->
-            </thead>
-            <tbody>
-              <!-- Baris teknisi dan data angka akan di-render dari JS -->
-            </tbody>
-          </table>
-        </div>
+        <!-- SECTION 4: SLA Targets Progress Row (5 Cards) -->
+        <section class="sla-progress-grid">
+          <!-- Distribusi -->
+          <div class="sla-progress-card">
+            <div class="sla-card-header">
+              <span class="sla-segment-name">Distribusi</span>
+              <span class="sla-status-badge achieve" id="sla-badge-distribusi">ACHIEVE</span>
+            </div>
+            <div class="sla-target-time">TTR &lt; 4 Jam</div>
+            <div class="sla-percentage green-text" id="sla-val-distribusi">69.84%</div>
+            <div class="sla-counts" id="sla-counts-distribusi">target 67.34% • 44/63 tiket</div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill green-bg" id="sla-bar-distribusi" style="width: 69.84%"></div>
+            </div>
+          </div>
 
-        <!-- Legenda Warna Status -->
-        <div class="status-legend">
-          <span class="legend-item"><span class="legend-dot status-antrian"></span> OPEN</span>
-          <span class="legend-item"><span class="legend-dot status-terpasang"></span> CLOSE</span>
-          <span class="legend-item"><span class="legend-dot status-pending"></span> KENDALA</span>
-        </div>
-      </section>
-    </main>
+          <!-- Feeder -->
+          <div class="sla-progress-card">
+            <div class="sla-card-header">
+              <span class="sla-segment-name">Feeder</span>
+              <span class="sla-status-badge achieve" id="sla-badge-feeder">ACHIEVE</span>
+            </div>
+            <div class="sla-target-time">TTR &lt; 10 Jam</div>
+            <div class="sla-percentage green-text" id="sla-val-feeder">81.82%</div>
+            <div class="sla-counts" id="sla-counts-feeder">target 74.95% • 9/11 tiket</div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill green-bg" id="sla-bar-feeder" style="width: 81.82%"></div>
+            </div>
+          </div>
+
+          <!-- ODC -->
+          <div class="sla-progress-card">
+            <div class="sla-card-header">
+              <span class="sla-segment-name">ODC</span>
+              <span class="sla-status-badge achieve" id="sla-badge-odc">ACHIEVE</span>
+            </div>
+            <div class="sla-target-time">TTR &lt; 10 Jam</div>
+            <div class="sla-percentage green-text" id="sla-val-odc">100%</div>
+            <div class="sla-counts" id="sla-counts-odc">target 94.97% • 10/10 tiket</div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill green-bg" id="sla-bar-odc" style="width: 100%"></div>
+            </div>
+          </div>
+
+          <!-- ODP -->
+          <div class="sla-progress-card">
+            <div class="sla-card-header">
+              <span class="sla-segment-name">ODP</span>
+              <span class="sla-status-badge achieve" id="sla-badge-odp">ACHIEVE</span>
+            </div>
+            <div class="sla-target-time">TTR &lt; 5 Jam</div>
+            <div class="sla-percentage green-text" id="sla-val-odp">100%</div>
+            <div class="sla-counts" id="sla-counts-odp">target 74.53% • 1/1 tiket</div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill green-bg" id="sla-bar-odp" style="width: 100%"></div>
+            </div>
+          </div>
+
+          <!-- OLT -->
+          <div class="sla-progress-card">
+            <div class="sla-card-header">
+              <span class="sla-segment-name">OLT</span>
+              <span class="sla-status-badge alert" id="sla-badge-olt">BELUM</span>
+            </div>
+            <div class="sla-target-time">TTR &lt; 6 Jam</div>
+            <div class="sla-percentage orange-text" id="sla-val-olt">76.67%</div>
+            <div class="sla-counts" id="sla-counts-olt">target 85% • 23/30 tiket</div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill orange-bg" id="sla-bar-olt" style="width: 76.67%"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 5: Charts Grid -->
+        <section class="charts-dashboard-grid">
+          
+          <!-- Chart Row 1, Card 1: Close vs Open per Hari -->
+          <div class="chart-card card">
+            <div class="chart-header">
+              <span class="chart-title-accent">Close vs Open per Hari</span>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-close-vs-open"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart Row 1, Card 2: INNER vs OUTER -->
+          <div class="chart-card card">
+            <div class="chart-header">
+              <span class="chart-title-accent">INNER vs OUTER</span>
+            </div>
+            <div class="chart-canvas-container donut-container">
+              <canvas id="chart-inner-vs-outer"></canvas>
+              <div class="donut-center-info" id="inner-outer-center-val">61 / 61</div>
+            </div>
+          </div>
+
+          <!-- Chart Row 1, Card 3: Tiket per STO - Pareto -->
+          <div class="chart-card card">
+            <div class="chart-header">
+              <span class="chart-title-accent">Tiket per STO — Pareto</span>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-sto-pareto"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart Row 2, Card 1: Aging TTR / Prioritas -->
+          <div class="chart-card card flex-column-card">
+            <div class="chart-header">
+              <span class="chart-title-accent">Aging TTR / Prioritas</span>
+            </div>
+            <div class="aging-ttr-list" id="aging-ttr-list">
+              <!-- Rendered via JavaScript for HTML progress rows -->
+            </div>
+            <div class="escalation-alert-box alert-card">
+              <span class="alert-highlight" id="escalation-alert-count">21</span>
+              <span class="alert-desc" id="escalation-alert-text">Fokus eskalasi — tiket dengan TTR > 8 jam (17.2% dari total). Prioritaskan untuk kurangi SLA breach.</span>
+            </div>
+          </div>
+
+          <!-- Chart Row 2, Card 2: Komposisi SQM vs Manual -->
+          <div class="chart-card card">
+            <div class="chart-header">
+              <span class="chart-title-accent">Komposisi SQM vs Manual</span>
+            </div>
+            <div class="chart-canvas-container donut-container">
+              <canvas id="chart-sqm-vs-manual"></canvas>
+              <div class="donut-center-info" id="sqm-manual-center-val">122<br><span class="center-sublabel">TIKET</span></div>
+            </div>
+          </div>
+
+          <!-- Chart Row 2, Card 3: Root Cause Analysis (Top 8) -->
+          <div class="chart-card card">
+            <div class="chart-header">
+              <span class="chart-title-accent">Root Cause Analysis (Top 8)</span>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-root-cause"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart Row 3, Card 1: Highlight Hari Ini -->
+          <div class="chart-card card highlight-card">
+            <div class="chart-header">
+              <span class="chart-title-accent">Highlight Hari Ini</span>
+            </div>
+            <div class="highlight-list-wrapper">
+              <ul class="highlight-list" id="highlight-list">
+                <!-- JavaScript renders highlights with glowing icons -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Chart Row 3, Card 2: Severity (berbasis TTR) -->
+          <div class="chart-card card">
+            <div class="chart-header">
+              <span class="chart-title-accent">Severity (berbasis TTR)</span>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-severity"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart Row 3, Card 3: Distribusi Segmen -->
+          <div class="chart-card card">
+            <div class="chart-header">
+              <span class="chart-title-accent">Distribusi Segmen</span>
+              <span class="badge" id="segment-badge-count">115 tiket</span>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-segment-dist"></canvas>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- SECTION 6: Bottom Row Tables -->
+        <section class="tables-bottom-grid">
+          
+          <!-- Card Left: Tiket Open -->
+          <div class="table-card card">
+            <div class="table-card-header">
+              <span class="table-card-title">Tiket Open</span>
+              <span class="badge badge-active" id="open-tickets-badge">5 AKTIF</span>
+            </div>
+            <div class="table-container">
+              <table class="data-table" id="table-open-tickets">
+                <thead>
+                  <tr>
+                    <th>Incident</th>
+                    <th>Ticket Info</th>
+                    <th>STO</th>
+                    <th>Aging</th>
+                    <th>Date Time</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="table-open-tickets-body">
+                  <!-- JS populated rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Card Right: Top-5 TTR Terlama -->
+          <div class="table-card card">
+            <div class="table-card-header">
+              <span class="table-card-title">Top-5 TTR Terlama</span>
+            </div>
+            <div class="table-container">
+              <table class="data-table" id="table-oldest-tickets">
+                <thead>
+                  <tr>
+                    <th>Incident</th>
+                    <th>Ticket Info</th>
+                    <th>STO</th>
+                    <th>Aging</th>
+                  </tr>
+                </thead>
+                <tbody id="table-oldest-tickets-body">
+                  <!-- JS populated rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+      </main>
+
+      <!-- FOOTER -->
+      <footer class="app-footer">
+        <span>designed by 920336</span>
+      </footer>
+
+    </div>
 
   </div>
 
-  <!-- MODAL POP-UP: Detail Tugas / Kanban Board -->
+  <!-- MODAL DETAILS: Kanban Popup (Retained functionality from previous implementation) -->
   <div class="modal-backdrop" id="kanban-modal">
     <div class="modal-card">
       <header class="modal-header">
@@ -239,7 +534,7 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button id="modal-lock-btn" class="btn-icon" title="Kunci modal agar tidak tertutup saat klik luar (Toggle)">
+          <button id="modal-lock-btn" class="btn-icon" title="Kunci modal agar tidak tertutup (Toggle)">
             <i data-lucide="unlock" id="lock-icon"></i>
           </button>
           <button id="modal-close-btn" class="btn-icon" title="Tutup">
@@ -248,40 +543,37 @@
         </div>
       </header>
 
-      <!-- Panel Search & Info di dalam Modal -->
       <div class="modal-filter-bar">
         <div class="search-bar search-bar-sm">
           <i data-lucide="search"></i>
           <input type="text" id="modal-search" placeholder="Cari di popup ini...">
         </div>
-        <div class="modal-filter-actions" style="display: flex; align-items: center; gap: 10px;">
+        <div class="modal-filter-actions">
           <button id="modal-copy-all-btn" class="btn btn-secondary btn-sm" title="Salin Semua Data">
-            <i data-lucide="copy" style="width: 14px; height: 14px; margin-right: 4px;"></i> Salin Semua
+            <i data-lucide="copy"></i> Salin Semua
           </button>
           <div id="modal-count-badge" class="badge">0 WO</div>
         </div>
       </div>
 
-      <!-- Container Kartu Detail (Kanban Style) -->
       <div class="modal-body">
         <div class="kanban-board-cards" id="kanban-cards-container">
-          <!-- Kartu detail WO akan di-render dari JS di sini -->
+          <!-- Detail cards rendered dynamically by JS -->
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Memuat Script Utama -->
-  <script src="app.js?v=2.1"></script>
-  <!-- Register Service Worker untuk PWA -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then((reg) => console.log('Service Worker terdaftar!', reg.scope))
-          .catch((err) => console.log('Gagal mendaftarkan Service Worker:', err));
-      });
-    }
-  </script>
+  <!-- Alert Container (For notifications) -->
+  <div id="alert-container" class="alert-container"></div>
+  
+  <!-- Loading overlay -->
+  <div id="loader" class="loader-overlay hidden">
+    <div class="spinner"></div>
+    <p>Memproses data...</p>
+  </div>
+
+  <!-- Load Main Application Script -->
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>
