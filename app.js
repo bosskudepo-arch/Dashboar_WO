@@ -583,6 +583,53 @@ function updateFilterDropdownOptions() {
   DOM.filterTipe.innerHTML = tipeHtml;
 }
 
+// Render menu sidebar navigasi secara dinamis berdasarkan nama-nama sheet
+function renderSidebarMenu() {
+  const uniqueSheets = new Set();
+  appState.tasks.forEach(task => {
+    if (task.SHEET_SOURCE) uniqueSheets.add(task.SHEET_SOURCE);
+  });
+  
+  const sortedSheets = Array.from(uniqueSheets).sort();
+  
+  let menuHtml = `
+    <button class="nav-item ${appState.filters.sa === "Semua" ? "active" : ""}" data-sheet="Semua">
+      <i data-lucide="layout-dashboard"></i>
+      <span>Semua Sheet</span>
+    </button>
+  `;
+  
+  sortedSheets.forEach(sheet => {
+    menuHtml += `
+      <button class="nav-item ${appState.filters.sa === sheet ? "active" : ""}" data-sheet="${sheet}">
+        <i data-lucide="table"></i>
+        <span>${sheet}</span>
+      </button>
+    `;
+  });
+  
+  const navMenu = document.querySelector('.nav-menu');
+  if (navMenu) {
+    navMenu.innerHTML = menuHtml;
+    lucide.createIcons();
+    
+    // Pasang event listener klik pada item navigasi yang baru
+    navMenu.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        navMenu.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        const clickedBtn = e.currentTarget;
+        clickedBtn.classList.add('active');
+        
+        const sheet = clickedBtn.getAttribute('data-sheet');
+        appState.filters.sa = sheet;
+        
+        showAlert(`Memuat sheet: ${sheet}`, "info");
+        renderDashboard();
+      });
+    });
+  }
+}
+
 // --------------------------------------------------------------------------
 // GET DATA DENGAN SINKRONISASI
 // --------------------------------------------------------------------------
@@ -605,6 +652,7 @@ function fetchData() {
       
       processRawTasks();
       updateFilterDropdownOptions();
+      renderSidebarMenu();
       DOM.statusDot.className = "sync-dot";
       DOM.statusText.textContent = "sinkron " + new Date().toLocaleTimeString('id-ID');
       showLoader(false);
@@ -633,6 +681,7 @@ function fetchData() {
           appState.tasks = result.data;
           processRawTasks();
           updateFilterDropdownOptions();
+          renderSidebarMenu();
           DOM.statusDot.className = "sync-dot";
           DOM.statusText.textContent = "sinkron " + new Date().toLocaleTimeString('id-ID');
           
