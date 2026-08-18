@@ -553,13 +553,15 @@ function processRawTasks() {
 function updateFilterDropdownOptions() {
   const uniqueSAs = new Set();
   const uniqueSTOs = new Set();
+  const uniqueTipes = new Set();
   
   appState.tasks.forEach(task => {
     if (task.SHEET_SOURCE) uniqueSAs.add(task.SHEET_SOURCE);
     if (task.parsedSTO) uniqueSTOs.add(task.parsedSTO);
+    if (task.PAKET) uniqueTipes.add(task.PAKET);
   });
   
-  // Populate SA
+  // Populate SA (SHEET)
   let saHtml = '<option value="Semua" selected>Semua</option>';
   Array.from(uniqueSAs).sort().forEach(sa => {
     saHtml += `<option value="${sa}">${sa}</option>`;
@@ -572,6 +574,13 @@ function updateFilterDropdownOptions() {
     stoHtml += `<option value="${sto}">${sto}</option>`;
   });
   DOM.filterSto.innerHTML = stoHtml;
+
+  // Populate TIPE (JENIS TIKET)
+  let tipeHtml = '<option value="Semua" selected>Semua</option>';
+  Array.from(uniqueTipes).sort().forEach(tipe => {
+    tipeHtml += `<option value="${tipe}">${tipe}</option>`;
+  });
+  DOM.filterTipe.innerHTML = tipeHtml;
 }
 
 // --------------------------------------------------------------------------
