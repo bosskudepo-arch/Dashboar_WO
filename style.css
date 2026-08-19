@@ -121,8 +121,7 @@ h1, h2, h3, h4, h5, h6 {
 .brand-icon {
   width: 28px;
   height: 28px;
-  color: var(--color-danger);
-  filter: drop-shadow(0 0 5px rgba(244, 63, 94, 0.5));
+  object-fit: contain;
 }
 
 .nav-menu {

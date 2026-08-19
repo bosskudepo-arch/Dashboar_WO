@@ -65,8 +65,8 @@ let appState = {
     stoPareto: null,
     sqmVsManual: null,
     rootCause: null,
-    severity: null,
-    segmentDist: null
+    ticketType: null,
+    techPerformance: null
   },
   
   // Filter yang sedang aktif
@@ -816,8 +816,8 @@ function renderDashboard() {
   renderSqmVsManualChart(filtered);
   renderRootCauseChart(filtered);
   renderHighlightList(filtered);
-  renderSeverityChart(filtered);
-  renderSegmentDistChart(filtered);
+  renderTicketTypeChart(filtered);
+  renderTechPerformanceChart(filtered);
   
   // 5. Render Data Tabel Bawah
   renderBottomTables(filtered);
@@ -1414,26 +1414,40 @@ function renderHighlightList(filtered) {
   lucide.createIcons();
 }
 
-// 8. Severity (Pie Chart)
-function renderSeverityChart(filtered) {
-  const counts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+// 8. Jenis Tiket (Pie Chart)
+function renderTicketTypeChart(filtered) {
+  const counts = {};
   filtered.forEach(t => {
-    if (counts[t.parsedSeverity] !== undefined) counts[t.parsedSeverity]++;
+    const type = (t.PAKET || "Lain-lain").trim();
+    counts[type] = (counts[type] || 0) + 1;
   });
 
-  const ctx = document.getElementById('chart-severity').getContext('2d');
-  appState.charts.severity = new Chart(ctx, {
+  const sortedTypes = Object.keys(counts)
+    .map(type => ({ name: type, count: counts[type] }))
+    .sort((a, b) => b.count - a.count);
+
+  const labels = sortedTypes.map(item => `${item.name} ${item.count}`);
+  const data = sortedTypes.map(item => item.count);
+
+  const colors = [
+    'rgba(0, 122, 255, 0.85)',   // Blue
+    'rgba(16, 185, 129, 0.85)',  // Green
+    'rgba(168, 85, 247, 0.85)',  // Purple
+    'rgba(249, 115, 22, 0.85)',   // Orange
+    'rgba(245, 158, 11, 0.85)',   // Amber/Yellow
+    'rgba(236, 72, 153, 0.85)',  // Pink
+    'rgba(6, 182, 212, 0.85)',   // Cyan
+    'rgba(100, 116, 139, 0.85)'  // Slate
+  ];
+
+  const ctx = document.getElementById('chart-ticket-type').getContext('2d');
+  appState.charts.ticketType = new Chart(ctx, {
     type: 'pie',
     data: {
-      labels: [`Critical ${counts.Critical}`, `High ${counts.High}`, `Medium ${counts.Medium}`, `Low ${counts.Low}`],
+      labels: labels,
       datasets: [{
-        data: [counts.Critical, counts.High, counts.Medium, counts.Low],
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.85)',
-          'rgba(249, 115, 22, 0.85)',
-          'rgba(245, 158, 11, 0.85)',
-          'rgba(16, 185, 129, 0.85)'
-        ],
+        data: data,
+        backgroundColor: colors.slice(0, sortedTypes.length),
         borderColor: '#0f1524',
         borderWidth: 2
       }]
@@ -1448,29 +1462,59 @@ function renderSeverityChart(filtered) {
   });
 }
 
-// 9. Distribusi Segmen (Pie Chart)
-function renderSegmentDistChart(filtered) {
-  const counts = { Distribusi: 0, Feeder: 0, ODC: 0, ODP: 0, OLT: 0 };
+// 9. Performansi Teknisi (Pie Chart - close tickets count)
+function renderTechPerformanceChart(filtered) {
+  const closedCounts = {};
+  let totalClosed = 0;
+  
   filtered.forEach(t => {
-    if (counts[t.parsedSegment] !== undefined) counts[t.parsedSegment]++;
+    const isClosed = ["CLOSE", "COMPLETE PS", "BERHENTI BERLANGGANAN"].includes((t.STATUS || "").toUpperCase().trim());
+    if (isClosed) {
+      const tech = (t.Teknisi || "Tanpa Teknisi").trim();
+      closedCounts[tech] = (closedCounts[tech] || 0) + 1;
+      totalClosed++;
+    }
   });
   
-  DOM.segmentBadgeCount.textContent = `${filtered.length} tiket`;
+  DOM.segmentBadgeCount.textContent = `${totalClosed} close`;
 
-  const ctx = document.getElementById('chart-segment-dist').getContext('2d');
-  appState.charts.segmentDist = new Chart(ctx, {
+  const sortedTechs = Object.keys(closedCounts)
+    .map(tech => ({ name: tech, count: closedCounts[tech] }))
+    .sort((a, b) => b.count - a.count);
+
+  let displayTechs = [];
+  if (sortedTechs.length > 6) {
+    displayTechs = sortedTechs.slice(0, 5);
+    const otherCount = sortedTechs.slice(5).reduce((sum, item) => sum + item.count, 0);
+    if (otherCount > 0) {
+      displayTechs.push({ name: "Lainnya", count: otherCount });
+    }
+  } else {
+    displayTechs = sortedTechs;
+  }
+
+  const labels = displayTechs.map(item => `${item.name} ${item.count}`);
+  const data = displayTechs.map(item => item.count);
+
+  const colors = [
+    'rgba(0, 122, 255, 0.85)',   // Blue
+    'rgba(168, 85, 247, 0.85)',  // Purple
+    'rgba(236, 72, 153, 0.85)',  // Pink
+    'rgba(249, 115, 22, 0.85)',   // Orange
+    'rgba(0, 240, 255, 0.85)',   // Cyan
+    'rgba(16, 185, 129, 0.85)',  // Green
+    'rgba(245, 158, 11, 0.85)',   // Amber/Yellow
+    'rgba(100, 116, 139, 0.85)'  // Slate
+  ];
+
+  const ctx = document.getElementById('chart-tech-performance').getContext('2d');
+  appState.charts.techPerformance = new Chart(ctx, {
     type: 'pie',
     data: {
-      labels: [`Distribusi ${counts.Distribusi}`, `Feeder ${counts.Feeder}`, `ODC ${counts.ODC}`, `ODP ${counts.ODP}`, `OLT ${counts.OLT}`],
+      labels: labels,
       datasets: [{
-        data: [counts.Distribusi, counts.Feeder, counts.ODC, counts.ODP, counts.OLT],
-        backgroundColor: [
-          'rgba(0, 122, 255, 0.85)',
-          'rgba(0, 240, 255, 0.85)',
-          'rgba(168, 85, 247, 0.85)',
-          'rgba(236, 72, 153, 0.85)',
-          'rgba(249, 115, 22, 0.85)'
-        ],
+        data: data,
+        backgroundColor: colors.slice(0, displayTechs.length),
         borderColor: '#0f1524',
         borderWidth: 2
       }]
