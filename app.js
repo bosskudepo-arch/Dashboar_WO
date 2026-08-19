@@ -88,7 +88,8 @@ let appState = {
     teknisi: "",
     status: "",
     grouping: "",
-    search: ""
+    search: "",
+    customFilter: ""
   }
 };
 
@@ -382,6 +383,43 @@ function setupEventListeners() {
       closeModal();
     }
   });
+
+  // KPI Card Event Listeners
+  const cardOlt = document.querySelector('.kpi-card.olt-down-card');
+  if (cardOlt) {
+    cardOlt.addEventListener('click', (e) => {
+      if (e.target.closest('.olt-scroller-box') || e.target.closest('li.olt-item')) return;
+      openDetailsModal('', 'olt', 'custom');
+    });
+  }
+
+  const cardTotal = document.querySelector('.kpi-card.total-tickets-card');
+  if (cardTotal) {
+    cardTotal.addEventListener('click', () => {
+      openDetailsModal('', 'all', 'custom');
+    });
+  }
+
+  const cardOpen = document.querySelector('.kpi-card.open-backend-card');
+  if (cardOpen) {
+    cardOpen.addEventListener('click', () => {
+      openDetailsModal('', 'open', 'custom');
+    });
+  }
+
+  const cardClosed = document.querySelector('.kpi-card.closed-card');
+  if (cardClosed) {
+    cardClosed.addEventListener('click', () => {
+      openDetailsModal('', 'closed', 'custom');
+    });
+  }
+
+  const cardUrgent = document.querySelector('.kpi-card.urgent-card');
+  if (cardUrgent) {
+    cardUrgent.addEventListener('click', () => {
+      openDetailsModal('', 'urgent', 'custom');
+    });
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -781,7 +819,7 @@ function renderDashboard() {
     activeOpenTickets.slice(0, 15).forEach(t => {
       const formattedTime = formatTTRString(t.parsedTTR);
       oldestHtml += `
-        <li class="olt-item" onclick="openDetailsModal('', '', 'all')">
+        <li class="olt-item" onclick="event.stopPropagation(); openDetailsModal('', '', 'all', '${t.WONUM}')">
           <span class="olt-sto">${t.parsedSTO || "-"}</span>
           <span class="olt-name" title="${t.ALPRO || ""}">${t.PAKET || ""} - ${t.ALPRO || ""}</span>
           <span class="olt-time" style="color: var(--text-orange); font-weight: bold;">${formattedTime}</span>
@@ -1144,6 +1182,18 @@ function renderInnerVsOuterChart(filtered) {
       cutout: '72%',
       plugins: {
         legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 10 } } }
+      },
+      onClick: (event, activeElements) => {
+        if (activeElements && activeElements.length > 0) {
+          const index = activeElements[0].index;
+          if (index === 0) {
+            openDetailsModal('', 'open', 'custom');
+          } else if (index === 1) {
+            openDetailsModal('', 'closed', 'custom');
+          }
+        } else {
+          openDetailsModal('', 'all', 'custom');
+        }
       }
     }
   });
@@ -1272,6 +1322,18 @@ function renderSqmVsManualChart(filtered) {
       cutout: '72%',
       plugins: {
         legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 10 } } }
+      },
+      onClick: (event, activeElements) => {
+        if (activeElements && activeElements.length > 0) {
+          const index = activeElements[0].index;
+          if (index === 0) {
+            openDetailsModal('', 'urgent_open', 'custom');
+          } else if (index === 1) {
+            openDetailsModal('', 'urgent_closed', 'custom');
+          }
+        } else {
+          openDetailsModal('', 'urgent', 'custom');
+        }
       }
     }
   });
@@ -1662,30 +1724,60 @@ function exportToExcelFormat() {
 // --------------------------------------------------------------------------
 // POP-UP KANBAN BOARD SYSTEM (Retained from previous dashboard logic)
 // --------------------------------------------------------------------------
-window.openDetailsModal = function(teknisi, filterVal, filterType) {
+window.openDetailsModal = function(teknisi, filterVal, filterType, searchKeyword) {
   appState.modalFilters.teknisi = teknisi;
   
   if (filterType === 'grouping') {
     appState.modalFilters.grouping = filterVal;
     appState.modalFilters.status = "";
+    appState.modalFilters.customFilter = "";
   } else if (filterType === 'status') {
     appState.modalFilters.grouping = "";
     appState.modalFilters.status = filterVal;
+    appState.modalFilters.customFilter = "";
+  } else if (filterType === 'custom') {
+    appState.modalFilters.grouping = "";
+    appState.modalFilters.status = "";
+    appState.modalFilters.customFilter = filterVal;
   } else {
     appState.modalFilters.grouping = "";
     appState.modalFilters.status = "";
+    appState.modalFilters.customFilter = "";
   }
   
   // Tentukan judul modal
   let title = "Detail Seluruh Pekerjaan";
   let subtitle = "Menampilkan semua Work Order terdaftar";
   
-  if (teknisi && filterVal) {
+  if (teknisi && filterVal && filterType !== 'custom') {
     title = `Status: ${filterVal}`;
     subtitle = `Teknisi: ${teknisi}`;
   } else if (teknisi) {
     title = `Semua Tugas Teknisi`;
     subtitle = teknisi;
+  } else if (filterType === 'custom') {
+    if (filterVal === 'olt') {
+      title = "Detail Tiket Open Terlama";
+      subtitle = "Menampilkan tiket open yang belum diselesaikan, diurutkan dari yang terlama";
+    } else if (filterVal === 'all') {
+      title = "Detail Seluruh Pekerjaan";
+      subtitle = "Menampilkan semua Work Order terdaftar";
+    } else if (filterVal === 'open') {
+      title = "Detail Tiket Open / Backend";
+      subtitle = "Menampilkan semua tiket status Open / Aktif";
+    } else if (filterVal === 'closed') {
+      title = "Detail Tiket Closed";
+      subtitle = "Menampilkan semua tiket status Closed / Selesai";
+    } else if (filterVal === 'urgent') {
+      title = "Detail Tiket Urgent MPW & STA";
+      subtitle = "Menampilkan semua tiket urgent dari sumber MPW & STA";
+    } else if (filterVal === 'urgent_open') {
+      title = "Detail Tiket Urgent - Open";
+      subtitle = "Menampilkan tiket urgent yang berstatus Open / Aktif";
+    } else if (filterVal === 'urgent_closed') {
+      title = "Detail Tiket Urgent - Closed";
+      subtitle = "Menampilkan tiket urgent yang berstatus Closed / Selesai";
+    }
   } else if (filterVal) {
     title = `Status: ${filterVal}`;
     subtitle = `Semua/Kolom ${filterVal}`;
@@ -1693,8 +1785,14 @@ window.openDetailsModal = function(teknisi, filterVal, filterType) {
   
   DOM.modalTitle.textContent = title;
   DOM.modalSubtitle.textContent = subtitle;
-  DOM.modalSearch.value = ""; // Reset kata kunci cari di modal
-  appState.modalFilters.search = "";
+  
+  if (searchKeyword) {
+    DOM.modalSearch.value = searchKeyword;
+    appState.modalFilters.search = searchKeyword;
+  } else {
+    DOM.modalSearch.value = ""; // Reset kata kunci cari di modal
+    appState.modalFilters.search = "";
+  }
   
   // Tampilkan Modal Card
   DOM.kanbanModal.classList.add('active');
@@ -1715,6 +1813,7 @@ function renderKanbanCards() {
   const tf = appState.modalFilters.teknisi;
   const gf = appState.modalFilters.grouping;
   const sf = appState.modalFilters.status;
+  const cf = appState.modalFilters.customFilter;
   const k = DOM.modalSearch.value.trim().toLowerCase();
   
   let matched = appState.filteredTasks.filter(task => {
@@ -1725,8 +1824,30 @@ function renderKanbanCards() {
     } else if (sf) {
       statMatch = (task.STATUS || "").trim() === sf;
     }
-    return techMatch && statMatch;
+    
+    let customMatch = true;
+    if (cf) {
+      const isClosed = ["CLOSE", "COMPLETE PS", "BERHENTI BERLANGGANAN"].includes((task.STATUS || "").toUpperCase().trim());
+      const isUrgent = (task.SHEET_SOURCE || "").toUpperCase().includes("URGENT");
+      if (cf === 'open' || cf === 'olt') {
+        customMatch = !isClosed;
+      } else if (cf === 'closed') {
+        customMatch = isClosed;
+      } else if (cf === 'urgent') {
+        customMatch = isUrgent;
+      } else if (cf === 'urgent_open') {
+        customMatch = isUrgent && !isClosed;
+      } else if (cf === 'urgent_closed') {
+        customMatch = isUrgent && isClosed;
+      }
+    }
+    
+    return techMatch && statMatch && customMatch;
   });
+  
+  if (cf === 'olt') {
+    matched.sort((a, b) => b.parsedTTR - a.parsedTTR);
+  }
   
   if (k) {
     matched = matched.filter(task => {
@@ -1895,11 +2016,23 @@ window.handleDropdownChange = function(wonum, selectElement, type) {
       const tf = appState.modalFilters.teknisi;
       const gf = appState.modalFilters.grouping;
       const sf = appState.modalFilters.status;
+      const cf = appState.modalFilters.customFilter;
       
       let isStillMatch = true;
       if (tf && newTechnician !== tf) isStillMatch = false;
       if (gf && newGrouping !== gf) isStillMatch = false;
       if (sf && newStatus !== sf) isStillMatch = false;
+      
+      if (cf) {
+        const isClosed = ["CLOSE", "COMPLETE PS", "BERHENTI BERLANGGANAN"].includes(newStatus.toUpperCase().trim());
+        const taskObj = appState.tasks.find(t => t.WONUM === wonum);
+        const isUrgent = taskObj && (taskObj.SHEET_SOURCE || "").toUpperCase().includes("URGENT");
+        if ((cf === 'open' || cf === 'olt') && isClosed) isStillMatch = false;
+        if (cf === 'closed' && !isClosed) isStillMatch = false;
+        if (cf === 'urgent' && !isUrgent) isStillMatch = false;
+        if (cf === 'urgent_open' && (!isUrgent || isClosed)) isStillMatch = false;
+        if (cf === 'urgent_closed' && (!isUrgent || !isClosed)) isStillMatch = false;
+      }
       
       if (!isStillMatch) {
         cardElement.classList.add('removing');

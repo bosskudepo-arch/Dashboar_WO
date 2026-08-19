@@ -40,6 +40,10 @@
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --glow-shadow-cyan: 0 0 15px rgba(0, 240, 255, 0.15);
   --glow-shadow-red: 0 0 15px rgba(244, 63, 94, 0.15);
+  --glow-shadow-orange: 0 0 15px rgba(249, 115, 22, 0.15);
+  --glow-shadow-green: 0 0 15px rgba(16, 185, 129, 0.15);
+  --glow-shadow-purple: 0 0 15px rgba(168, 85, 247, 0.15);
+  --glow-shadow-blue: 0 0 15px rgba(0, 122, 255, 0.15);
 }
 
 * {
@@ -514,6 +518,11 @@ input:checked + .slider:before {
   transition: var(--transition-smooth);
 }
 
+.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
 .kpi-card:hover {
   border-color: var(--text-muted);
   transform: translateY(-2px);
@@ -525,7 +534,28 @@ input:checked + .slider:before {
 }
 
 .kpi-card.olt-down-card:hover {
+  border-color: var(--color-danger);
   box-shadow: var(--glow-shadow-red);
+}
+
+.kpi-card.total-tickets-card:hover {
+  border-color: var(--accent-blue);
+  box-shadow: var(--glow-shadow-blue);
+}
+
+.kpi-card.open-backend-card:hover {
+  border-color: var(--color-warning);
+  box-shadow: var(--glow-shadow-orange);
+}
+
+.kpi-card.closed-card:hover {
+  border-color: var(--color-success);
+  box-shadow: var(--glow-shadow-green);
+}
+
+.kpi-card.urgent-card:hover {
+  border-color: var(--accent-purple);
+  box-shadow: var(--glow-shadow-purple);
 }
 
 .kpi-card-header {
@@ -808,6 +838,10 @@ input:checked + .slider:before {
   flex-grow: 1;
   width: 100%;
   height: 160px;
+}
+
+.chart-canvas-container canvas {
+  cursor: pointer;
 }
 
 /* Donut chart centered text */
