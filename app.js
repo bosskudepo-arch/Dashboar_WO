@@ -966,6 +966,7 @@ function renderSLACompliance(filtered) {
     const barEl = DOM[`slaBar${key}`];
 
     const techData = topTechs[idx];
+    const cardEl = nameEl ? nameEl.closest('.sla-progress-card') : null;
 
     if (techData) {
       // Hitung rasio open vs total
@@ -989,6 +990,12 @@ function renderSLACompliance(filtered) {
         barEl.style.width = `${progressPercent}%`;
         barEl.className = "progress-bar-fill orange-bg";
       }
+      
+      // Make card clickable for technician
+      if (cardEl) {
+        cardEl.classList.add('clickable');
+        cardEl.onclick = () => openDetailsModal(techData.name, '', '');
+      }
     } else {
       // Kosongkan atau sembunyikan jika tidak ada teknisi ke-X
       if (nameEl) nameEl.textContent = "-";
@@ -1007,6 +1014,12 @@ function renderSLACompliance(filtered) {
       if (barEl) {
         barEl.style.width = `0%`;
         barEl.className = "progress-bar-fill green-bg";
+      }
+      
+      // Remove clickable state
+      if (cardEl) {
+        cardEl.classList.remove('clickable');
+        cardEl.onclick = null;
       }
     }
   });

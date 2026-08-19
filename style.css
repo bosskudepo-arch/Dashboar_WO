@@ -679,6 +679,16 @@ input:checked + .slider:before {
   border-color: var(--border-light);
 }
 
+.sla-progress-card.clickable {
+  cursor: pointer;
+}
+
+.sla-progress-card.clickable:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
+}
+
 .sla-card-header {
   display: flex;
   justify-content: space-between;
