@@ -388,7 +388,7 @@ function setupEventListeners() {
   const cardOlt = document.querySelector('.kpi-card.olt-down-card');
   if (cardOlt) {
     cardOlt.addEventListener('click', (e) => {
-      if (e.target.closest('.olt-scroller-box') || e.target.closest('li.olt-item')) return;
+      if (e.target.closest('li.olt-item')) return;
       openDetailsModal('', 'olt', 'custom');
     });
   }
